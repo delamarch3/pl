@@ -1,0 +1,58 @@
+#pragma once
+
+#include <stdlib.h>
+
+#include "string.h"
+
+typedef enum {
+    T_IDENT,
+    T_KEYWORD,
+    T_STRING,
+    T_NUMBER,
+
+    T_LPAREN,
+    T_RPAREN,
+    T_LBRACE,
+    T_RBRACE,
+    T_LBRACK,
+    T_RBRACK,
+    T_SEMICOLON,
+    T_EQUAL,
+    T_MINUS,
+    T_PLUS,
+    T_SLASH,
+    T_STAR,
+    T_LT,
+    T_GT,
+    T_COMMA
+} TokenKind;
+
+typedef struct {
+    size_t line;
+} Position;
+
+typedef struct {
+    TokenKind kind;
+    String value;
+    Position pos;
+} Token;
+
+typedef struct {
+    size_t len;
+    size_t cap;
+    Token *items;
+} Tokens;
+
+typedef struct {
+    Tokens toks;
+    size_t i;
+} TokenState;
+
+TokenKind symbol_tokens[256];
+
+char *symbol_values[256];
+
+Tokens tokenise(const String *);
+
+Token *next_token(TokenState *);
+Token *peek_token(TokenState *);

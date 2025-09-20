@@ -1,0 +1,19 @@
+CompileFlags:
+    Add: [-Wall, -Wextra, -pedantic, -std=c23, -Wno-char-subscripts]
+    Remove: [-Wempty-translation-unit]
+
+---
+
+If:
+  PathMatch: .*\.h
+
+CompileFlags:
+  Add: [-xc-header]
+
+---
+
+If:
+  PathMatch: .*\.c
+
+CompileFlags:
+  Add: [-xc]
