@@ -44,9 +44,9 @@ typedef struct {
 } Tokens;
 
 typedef struct {
-    Tokens toks;
-    size_t i;
-} TokenState;
+    Tokens array;
+    size_t position;
+} TokenIter;
 
 TokenKind symbol_tokens[256];
 
@@ -54,5 +54,5 @@ char *symbol_values[256];
 
 Tokens tokenise(const String *);
 
-Token *next_token(TokenState *);
-Token *peek_token(TokenState *);
+Token *next_token(TokenIter *);
+Token *peek_token(TokenIter *);

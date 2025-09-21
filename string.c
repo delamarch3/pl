@@ -38,17 +38,6 @@ String string_from_file(int fd) {
     return s;
 }
 
-void string_extend_while(String *t, const String *s, size_t from, int p(char)) {
-    for (size_t i = from; i < s->len; i++) {
-        char c = s->items[i];
-        if (!p(c)) {
-            break;
-        }
-
-        append(t, c);
-    }
-}
-
 String string_from_cstr(char *s) {
     String t = {0};
 

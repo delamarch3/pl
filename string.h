@@ -8,6 +8,10 @@ typedef struct {
     char *items;
 } String;
 
+typedef struct {
+    String array;
+    size_t position;
+} CharIter;
+
 String string_from_file(int);
-void string_extend_while(String *, const String *, size_t, int(char));
 String string_from_cstr(char *);

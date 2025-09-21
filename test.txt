@@ -3,7 +3,8 @@ int main() {
     int b = 2;
     int c = a + b;
 
-    char* d = "Hello, World!";
+    // This is a comment
+    char d = "Hello, World!";
 
     if a < b {
     }

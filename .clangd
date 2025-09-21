@@ -1,5 +1,5 @@
 CompileFlags:
-    Add: [-Wall, -Wextra, -pedantic, -std=c23, -Wno-char-subscripts]
+    Add: [-Wall, -Wextra, -pedantic, -std=c23, -Wno-char-subscripts, -Wno-gnu-statement-expression-from-macro-expansion]
     Remove: [-Wempty-translation-unit]
 
 ---

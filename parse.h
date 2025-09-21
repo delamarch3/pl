@@ -142,4 +142,4 @@ typedef struct {
     Statements statements;
 } WhileStatement;
 
-Declaration parse_decl(TokenState *);
+Declaration parse_decl(TokenIter *);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "array.h"
+#include "string.h"
 #include "token.h"
 
 TokenKind symbol_tokens[256] = {
@@ -33,42 +34,88 @@ static int isnewline(char c) {
     return c == '\n';
 }
 
+static int isnotnewline(char c) {
+    return c != '\n';
+}
+
 static int iswhitespace(char c) {
     return c == ' ' || c == '\t';
+}
+
+static void extend_while(String *s, CharIter *chars, int p(char)) {
+    char *c;
+    while ((c = peek(chars))) {
+        if (!p(*c)) {
+            break;
+        }
+
+        append(s, *c);
+
+        if (++chars->position == chars->array.len) {
+            break;
+        }
+    }
+}
+
+static void consume_while(CharIter *chars, int p(char)) {
+    char *c;
+    while ((c = peek(chars))) {
+        if (!p(*c)) {
+            break;
+        }
+
+        if (++chars->position == chars->array.len) {
+            break;
+        }
+    }
 }
 
 Tokens tokenise(const String *s) {
     Tokens toks = {0};
     size_t line = 1;
 
-    for (size_t i = 0; i < s->len; i++) {
-        char c = s->items[i];
+    CharIter chars = {0};
+    chars.array = *s;
+
+    char *c;
+    while ((c = peek(&chars))) {
         Token tok = {0};
 
-        // TODO: comments
-        if (iswhitespace(c)) {
+        if (iswhitespace(*c)) {
+            next(&chars);
+
             continue;
-        } else if (isnewline(c)) {
+        } else if (isnewline(*c)) {
+            next(&chars);
             line++;
+
             continue;
-        } else if (isalphabetic(c)) {
+        } else if (isalphabetic(*c)) {
             String value = {0};
-            string_extend_while(&value, s, i, isalphanumeric);
-            i += value.len - 1;
+            extend_while(&value, &chars, isalphanumeric);
 
             tok.kind = T_IDENT;
             tok.value = value;
-        } else if (isnumeric(c)) {
+        } else if (isnumeric(*c)) {
             String value = {0};
-            string_extend_while(&value, s, i, isnumeric);
-            i += value.len - 1;
+            extend_while(&value, &chars, isnumeric);
 
             tok.kind = T_NUMBER;
             tok.value = value;
-        } else if (c == '-') {
+        } else if (*c == '/') {
+            next(&chars);
+
+            if (*(c = peek(&chars)) == '/') {
+                consume_while(&chars, isnotnewline);
+                continue;
+            } else {
+                tok.kind = T_SLASH;
+            }
+        } else if (*c == '-') {
+            next(&chars);
+
             String value = string_from_cstr("-");
-            string_extend_while(&value, s, i + 1, isnumeric);
-            i += value.len - 1;
+            extend_while(&value, &chars, isnumeric);
 
             if (value.len == 1) {
                 tok.kind = T_MINUS;
@@ -76,17 +123,26 @@ Tokens tokenise(const String *s) {
                 tok.kind = T_NUMBER;
                 tok.value = value;
             }
-        } else if (c == '"') {
+        } else if (*c == '"') {
+            next(&chars);
+
             String value = {0};
-            string_extend_while(&value, s, i + 1, isnotdoublequote);
-            i += value.len + 1;
+            extend_while(&value, &chars, isnotdoublequote);
+
+            char *n = next(&chars);
+            if (n == nullptr || *n != '"') {
+                fprintf(stderr, "expected closing quote: %c\n", *c);
+                exit(1);
+            }
 
             tok.kind = T_STRING;
             tok.value = value;
         } else {
-            tok.kind = symbol_tokens[c];
+            next(&chars);
+
+            tok.kind = symbol_tokens[*c];
             if (tok.kind == 0) {
-                fprintf(stderr, "unexpected symbol: %c\n", c);
+                fprintf(stderr, "unexpected symbol: %c\n", *c);
                 exit(1);
             }
         }
@@ -98,18 +154,18 @@ Tokens tokenise(const String *s) {
     return toks;
 }
 
-Token *next_token(TokenState *ts) {
-    if (ts->i == ts->toks.len) {
+Token *next_token(TokenIter *ts) {
+    if (ts->position == ts->array.len) {
         return nullptr;
     }
 
-    return &ts->toks.items[ts->i++];
+    return &ts->array.items[ts->position++];
 }
 
-Token *peek_token(TokenState *ts) {
-    if (ts->i == ts->toks.len) {
+Token *peek_token(TokenIter *ts) {
+    if (ts->position == ts->array.len) {
         return nullptr;
     }
 
-    return &ts->toks.items[ts->i];
+    return &ts->array.items[ts->position];
 }

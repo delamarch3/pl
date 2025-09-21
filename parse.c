@@ -4,7 +4,7 @@
 #include "parse.h"
 #include "token.h"
 
-Declaration parse_decl(TokenState *ts) {
+Declaration parse_decl(TokenIter *ts) {
     Token *a = next_token(ts);
     if (a == nullptr) {
         fprintf(stderr, "unexpected eof");
