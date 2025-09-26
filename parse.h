@@ -5,11 +5,12 @@
 
 /*
  * declaration { ident, ident }
+
+ * function {
+ *     declration, declration*, statement*
+ * }
  *
  * statement {
- *     function {
- *         declration, declration*, statement*
- *     }
  *     definition {
  *         declration, expr
  *     }

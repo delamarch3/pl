@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "array.h"
 #include "string.h"
@@ -13,6 +14,12 @@ char *symbol_values[256] = {
     [T_LPAREN] = "(", [T_RPAREN] = ")", [T_LBRACE] = "{", [T_RBRACE] = "}", [T_SEMICOLON] = ";",
     [T_EQUAL] = "=",  [T_MINUS] = "-",  [T_PLUS] = "+",   [T_SLASH] = "/",  [T_STAR] = "*",
     [T_LT] = "<",     [T_GT] = ">",     [T_COMMA] = ",",  [T_LBRACK] = "[", [T_RBRACK] = "]"};
+
+char *keywords[] = {
+    "if",
+    "while",
+    "for",
+};
 
 static int isnotdoublequote(char c) {
     return c != '"';
@@ -96,6 +103,13 @@ Tokens tokenise(const String *s) {
 
             tok.kind = T_IDENT;
             tok.value = value;
+
+            for (size_t i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
+                if (strcmp(keywords[i], tok.value.items) == 0) {
+                    tok.kind = T_KEYWORD;
+                    break;
+                }
+            }
         } else if (isnumeric(*c)) {
             String value = {0};
             extend_while(&value, &chars, isnumeric);
