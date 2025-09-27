@@ -1,43 +1,136 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/_types/_va_list.h>
 
+#include "array.h"
 #include "parse.h"
 #include "token.h"
 
-Declaration parse_decl(TokenIter *ts) {
-    Token *a = next_token(ts);
+static Token expect(TokenIter *ts, TokenKind want) {
+    Token *a = next(ts);
     if (a == nullptr) {
-        fprintf(stderr, "unexpected eof");
+        fprintf(stderr, "unexpected eof\n");
         exit(1);
     }
-    Token *b = next_token(ts);
-    if (a == nullptr) {
-        fprintf(stderr, "unexpected eof");
+    if (a->kind != want) {
+        char *display;
+        int len;
+        if (a->value.items != nullptr) {
+            display = a->value.items;
+            len = a->value.len;
+        } else {
+            display = &symbol_values[a->kind];
+            len = 1;
+        }
+
+        fprintf(stderr, "%ld: unexpected token: %.*s\n", a->pos.line, len, display);
         exit(1);
     }
 
-    String type = {0}, name = {0};
+    return *a;
+}
 
-    switch (a->kind) {
-    case T_IDENT:
-        type = a->value;
-    default:
-        fprintf(stderr, "%ld: unexpected token: %d", a->pos.line, a->kind);
-        exit(1);
+static bool check(TokenIter *ts, TokenKind want) {
+    Token *a = peek(ts);
+    if (a == nullptr || a->kind != want) {
+        return false;
     }
 
-    switch (b->kind) {
-    case T_IDENT:
-        name = b->value;
-    default:
-        fprintf(stderr, "%ld: unexpected token: %d", b->pos.line, b->kind);
-        exit(1);
+    next(ts);
+
+    return true;
+}
+
+static bool checkn(TokenIter *ts, TokenKind start, ...) {
+    size_t position = ts->position;
+
+    va_list args;
+
+    va_start(args, start);
+    for (TokenKind want = start; want != 0; want = va_arg(args, TokenKind)) {
+        Token *a = peek(ts);
+        if (a == nullptr || a->kind != want) {
+            ts->position = position;
+            return false;
+        }
+
+        next(ts);
     }
+
+    return true;
+}
+
+Function parse_function(TokenIter *ts) {
+    Function func = {0};
+
+    func.decl = parse_declaration(ts);
+
+    expect(ts, T_LPAREN);
+    if (check(ts, T_RPAREN)) {
+        goto parse_statements;
+    }
+
+    Declarations args = {0};
+    do {
+        Declaration arg = parse_declaration(ts);
+        append(&args, arg);
+    } while (check(ts, T_COMMA));
+    func.args = args;
+
+    expect(ts, T_RPAREN);
+
+parse_statements:
+    Statements stmts = {0};
+
+    expect(ts, T_LBRACE);
+
+    while (true) {
+        if (checkn(ts, T_IDENT, T_IDENT, 0)) {
+            ts->position -= 2;
+
+            DefinitionStatement *def = calloc(1, sizeof(DefinitionStatement));
+            def->skind = DEFINITION;
+            def->decl = parse_declaration(ts);
+            expect(ts, T_EQUAL);
+            def->expr = parse_expr(ts);
+
+            expect(ts, T_SEMICOLON);
+
+            append(&stmts, (Statement *)def)
+        } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
+            // parse assignment
+
+            expect(ts, T_SEMICOLON);
+        } else {
+            break;
+        }
+    }
+
+    expect(ts, T_RBRACE);
+
+    return func;
+}
+
+Declaration parse_declaration(TokenIter *ts) {
+    Token type = expect(ts, T_IDENT);
+    Token name = expect(ts, T_IDENT);
 
     Declaration decl = {
-        .type = type,
-        .name = name,
+        .type = type.value,
+        .name = name.value,
     };
 
     return decl;
+}
+
+Expr *parse_expr(TokenIter *ts) {
+    ts->position++;
+
+    ValueExpr *expr = calloc(1, sizeof(ValueExpr));
+    expr->ekind = VALUE;
+    expr->vkind = NUMBER;
+    expr->value.sint = 15;
+
+    return (Expr *)expr;
 }

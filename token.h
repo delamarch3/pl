@@ -5,7 +5,7 @@
 #include "string.h"
 
 typedef enum {
-    T_IDENT,
+    T_IDENT = 1,
     T_KEYWORD,
     T_STRING,
     T_NUMBER,
@@ -24,7 +24,9 @@ typedef enum {
     T_STAR,
     T_LT,
     T_GT,
-    T_COMMA
+    T_COMMA,
+
+    T_EOF,
 } TokenKind;
 
 typedef struct {
@@ -50,9 +52,6 @@ typedef struct {
 
 TokenKind symbol_tokens[256];
 
-char *symbol_values[256];
+char symbol_values[256];
 
 Tokens tokenise(const String *);
-
-Token *next_token(TokenIter *);
-Token *peek_token(TokenIter *);

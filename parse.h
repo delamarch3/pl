@@ -41,11 +41,22 @@
  * }
  */
 
+typedef struct {
+    String type;
+    String name;
+} Declaration;
+
+typedef struct {
+    size_t len;
+    size_t cap;
+    Declaration *items;
+} Declarations;
+
 /* Expressions */
 
-typedef enum { BINARY_OP, VALUE, IDENT, CALL } ExprType;
+typedef enum { BINARY_OP, VALUE, IDENT, CALL } ExprKind;
 typedef struct {
-    ExprType etype;
+    ExprKind ekind;
 } Expr;
 
 typedef struct {
@@ -56,7 +67,7 @@ typedef struct {
 
 typedef enum { ADD, SUB, MUL, DIV, LT, LE, GT, GE } BinaryOp;
 typedef struct {
-    ExprType etype;
+    ExprKind ekind;
 
     Expr *left;
     BinaryOp op;
@@ -69,16 +80,16 @@ typedef union {
     int64_t sint;
 } Value;
 
-typedef enum { STRING, NUMBER, CHAR } ValueType;
+typedef enum { STRING, NUMBER, CHAR } ValueKind;
 typedef struct {
-    ExprType etype;
+    ExprKind ekind;
 
-    ValueType vtype;
+    ValueKind vkind;
     Value value;
 } ValueExpr;
 
 typedef struct {
-    ExprType etype;
+    ExprKind ekind;
 
     String name;
     Exprs args;
@@ -86,20 +97,9 @@ typedef struct {
 
 /* Statements */
 
+typedef enum { DEFINITION, ASSIGNMENT, IF, WHILE } StatementKind;
 typedef struct {
-    String type;
-    String name;
-} Declaration;
-
-typedef struct {
-    size_t len;
-    size_t cap;
-    Declaration *items;
-} Declarations;
-
-typedef enum { FUNCTION, DEFINITION, ASSIGNMENT, IF, WHILE } StatementType;
-typedef struct {
-    StatementType stype;
+    StatementKind skind;
 } Statement;
 
 typedef struct {
@@ -109,38 +109,42 @@ typedef struct {
 } Statements;
 
 typedef struct {
-    StatementType stype;
+    StatementKind skind;
 
     Declaration decl;
-    Declarations args;
-} FunctionStatement;
-
-typedef struct {
-    StatementType stype;
-
-    Declaration decl;
-    Expr expr;
+    Expr *expr;
 } DefinitionStatement;
 
 typedef struct {
-    StatementType stype;
+    StatementKind skind;
 
     String name;
     Expr expr;
 } AssignmentStatement;
 
 typedef struct {
-    StatementType stype;
+    StatementKind skind;
 
     Expr expr;
     Statements statements;
 } IfStatement;
 
 typedef struct {
-    StatementType stype;
+    StatementKind skind;
 
     Expr expr;
     Statements statements;
 } WhileStatement;
 
-Declaration parse_decl(TokenIter *);
+/* Function */
+
+typedef struct {
+    Declaration decl;
+    Declarations args;
+    Statements stmts;
+} Function;
+
+Function parse_function(TokenIter *);
+Statement parse_statement(TokenIter *);
+Declaration parse_declaration(TokenIter *);
+Expr *parse_expr(TokenIter *);

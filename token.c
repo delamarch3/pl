@@ -10,16 +10,12 @@ TokenKind symbol_tokens[256] = {
     ['='] = T_EQUAL,  ['-'] = T_MINUS,  ['+'] = T_PLUS,   ['/'] = T_SLASH,  ['*'] = T_STAR,
     ['<'] = T_LT,     ['>'] = T_GT,     [','] = T_COMMA,  ['['] = T_LBRACK, [']'] = T_RBRACK};
 
-char *symbol_values[256] = {
-    [T_LPAREN] = "(", [T_RPAREN] = ")", [T_LBRACE] = "{", [T_RBRACE] = "}", [T_SEMICOLON] = ";",
-    [T_EQUAL] = "=",  [T_MINUS] = "-",  [T_PLUS] = "+",   [T_SLASH] = "/",  [T_STAR] = "*",
-    [T_LT] = "<",     [T_GT] = ">",     [T_COMMA] = ",",  [T_LBRACK] = "[", [T_RBRACK] = "]"};
+char symbol_values[256] = {
+    [T_LPAREN] = '(', [T_RPAREN] = ')', [T_LBRACE] = '{', [T_RBRACE] = '}', [T_SEMICOLON] = ';',
+    [T_EQUAL] = '=',  [T_MINUS] = '-',  [T_PLUS] = '+',   [T_SLASH] = '/',  [T_STAR] = '*',
+    [T_LT] = '<',     [T_GT] = '>',     [T_COMMA] = ',',  [T_LBRACK] = '[', [T_RBRACK] = ']'};
 
-char *keywords[] = {
-    "if",
-    "while",
-    "for",
-};
+char *keywords[] = {"if", "else", "while", "for", "return", "null"};
 
 static int isnotdoublequote(char c) {
     return c != '"';
@@ -166,20 +162,4 @@ Tokens tokenise(const String *s) {
     }
 
     return toks;
-}
-
-Token *next_token(TokenIter *ts) {
-    if (ts->position == ts->array.len) {
-        return nullptr;
-    }
-
-    return &ts->array.items[ts->position++];
-}
-
-Token *peek_token(TokenIter *ts) {
-    if (ts->position == ts->array.len) {
-        return nullptr;
-    }
-
-    return &ts->array.items[ts->position];
 }

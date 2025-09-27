@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "parse.h"
 #include "string.h"
 #include "token.h"
 
@@ -29,11 +30,16 @@ int main() {
         case T_STRING:
             printf("%.*s\n", (int)t.value.len, t.value.items);
             break;
+        case T_EOF:
+            break;
         default:
-            printf("%s\n", symbol_values[t.kind]);
+            printf("%c\n", symbol_values[t.kind]);
             break;
         }
     }
+
+    TokenIter ts = {.array = tokens, .position = 0};
+    Function func = parse_function(&ts);
 
     return 0;
 }

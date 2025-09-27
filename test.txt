@@ -1,11 +1,11 @@
 int main() {
     int a = -134424;
     int b = 2;
-    int c = a + b;
+    // int c = a + b;
 
     // This is a comment
-    char d = "Hello, World!";
+    // char d = "Hello, World!";
 
-    if a < b {
-    }
+    // if a < b {
+    // }
 }
