@@ -1,34 +1,55 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/_types/_va_list.h>
+#include <string.h>
 
 #include "array.h"
 #include "parse.h"
 #include "token.h"
 
-static Token expect(TokenIter *ts, TokenKind want) {
-    Token *a = next(ts);
-    if (a == nullptr) {
+#define panic_unexpected_token(t)                                                                  \
+    ({                                                                                             \
+        char *display;                                                                             \
+        int len;                                                                                   \
+        if (t->value.items != nullptr) {                                                           \
+            display = t->value.items;                                                              \
+            len = t->value.len;                                                                    \
+        } else {                                                                                   \
+            display = &symbol_values[t->kind];                                                     \
+            len = 1;                                                                               \
+        }                                                                                          \
+        fprintf(stderr, "%ld: unexpected token: %.*s\n", t->pos.line, len, display);               \
+        exit(1);                                                                                   \
+    })
+
+#define box(x)                                                                                     \
+    ({                                                                                             \
+        auto ptr = malloc(sizeof(x));                                                              \
+        if (ptr == nullptr) {                                                                      \
+            fprintf(stderr, "malloc failed");                                                      \
+            exit(1);                                                                               \
+        }                                                                                          \
+        memcpy(ptr, &x, sizeof(x));                                                                \
+        ptr;                                                                                       \
+    })
+
+static Token *next_token(TokenIter *ts) {
+    Token *t = next(ts);
+    if (t == nullptr) {
         fprintf(stderr, "unexpected eof\n");
         exit(1);
     }
-    if (a->kind != want) {
-        char *display;
-        int len;
-        if (a->value.items != nullptr) {
-            display = a->value.items;
-            len = a->value.len;
-        } else {
-            display = &symbol_values[a->kind];
-            len = 1;
-        }
 
-        fprintf(stderr, "%ld: unexpected token: %.*s\n", a->pos.line, len, display);
-        exit(1);
+    return t;
+}
+
+static Token expect(TokenIter *ts, TokenKind want) {
+    Token *t = next_token(ts);
+    if (t->kind != want) {
+        panic_unexpected_token(t);
     }
 
-    return *a;
+    return *t;
 }
 
 static bool check(TokenIter *ts, TokenKind want) {
@@ -96,7 +117,7 @@ parse_statements:
             DefinitionStatement *def = &stmt.value.d;
             def->decl = parse_declaration(ts);
             expect(ts, T_EQUAL);
-            def->expr = parse_expr(ts);
+            def->expr = parse_expr(ts, 0);
 
             expect(ts, T_SEMICOLON);
 
@@ -127,15 +148,87 @@ Declaration parse_declaration(TokenIter *ts) {
     return decl;
 }
 
-Expr parse_expr(TokenIter *ts) {
-    ts->position++;
+int next_bp(TokenIter *ts) {
+    return 0;
+}
 
+Expr parse_expr(TokenIter *ts, int bp) {
+    Expr expr = parse_prefix(ts);
+
+    while (true) {
+        int nbp = next_bp(ts);
+        if (bp >= nbp) {
+            break;
+        }
+
+        Token *t = peek(ts);
+        if (t == nullptr) {
+            break;
+        }
+        next(ts);
+
+        BinaryOp op;
+        switch (t->kind) {
+        case T_PLUS:
+            op = OP_ADD;
+            break;
+        case T_MINUS:
+            op = OP_SUB;
+            break;
+        case T_STAR:
+            op = OP_MUL;
+            break;
+        case T_SLASH:
+            op = OP_DIV;
+            break;
+        default:
+            panic_unexpected_token(t);
+        }
+
+        Expr rhs = parse_expr(ts, bp);
+        expr = binop(expr, op, rhs);
+    }
+
+    return expr;
+}
+
+Expr parse_prefix(TokenIter *ts) {
+    Token *t = next_token(ts);
+
+    // TODO: call(e1, e2, ..)
+    ValueExpr *value;
     Expr expr = {0};
-    expr.kind = E_VALUE;
+    switch (t->kind) {
+    case T_NUMBER:
+        expr.kind = E_VALUE;
+        value = &expr.value.v;
+        value->kind = V_NUMBER;
+        value->value.num = strtol(t->value.items, nullptr, 10);
+        break;
+    case T_STRING:
+        expr.kind = E_VALUE;
+        value = &expr.value.v;
+        value->kind = V_STRING;
+        value->value.str = t->value;
+        break;
+    case T_LPAREN:
+        expr = parse_expr(ts, 0);
+        expect(ts, T_RPAREN);
+        break;
+    default:
+        panic_unexpected_token(t);
+    }
 
-    ValueExpr *value = &expr.value.v;
-    value->kind = V_NUMBER;
-    value->value.sint = 15;
+    return expr;
+}
+
+Expr binop(Expr lhs, BinaryOp op, Expr rhs) {
+    Expr expr = {0};
+    expr.kind = E_BINARY_OP;
+    BinaryOpExpr *bop = &expr.value.b;
+    bop->left = box(lhs);
+    bop->op = op;
+    bop->right = box(rhs);
 
     return expr;
 }

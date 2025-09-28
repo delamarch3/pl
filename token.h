@@ -7,9 +7,12 @@
 typedef enum {
     T_IDENT = 1,
     T_KEYWORD,
+
+    // Values
     T_STRING,
     T_NUMBER,
 
+    // Symbols
     T_LPAREN,
     T_RPAREN,
     T_LBRACE,

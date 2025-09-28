@@ -72,8 +72,7 @@ typedef struct {
 
 typedef union {
     String str;
-    uint64_t uint;
-    int64_t sint;
+    long num;
 } Value;
 
 typedef enum { V_STRING, V_NUMBER, V_CHAR } ValueKind;
@@ -152,4 +151,10 @@ typedef struct {
 Function parse_function(TokenIter *);
 Statement parse_statement(TokenIter *);
 Declaration parse_declaration(TokenIter *);
-Expr parse_expr(TokenIter *);
+
+Expr parse_expr(TokenIter *, int);
+Expr parse_prefix(TokenIter *);
+Expr parse_infix(TokenIter *, Expr, int);
+int next_bp(TokenIter *);
+
+Expr binop(Expr, BinaryOp, Expr);
