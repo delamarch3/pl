@@ -91,7 +91,7 @@ parse_statements:
         if (checkn(ts, T_IDENT, T_IDENT, 0)) {
             ts->position -= 2;
 
-            stmt.kind = DEFINITION;
+            stmt.kind = S_DEFINITION;
 
             DefinitionStatement *def = &stmt.value.d;
             def->decl = parse_declaration(ts);
@@ -102,7 +102,7 @@ parse_statements:
 
             append(&stmts, stmt)
         } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
-            stmt.kind = ASSIGNMENT;
+            stmt.kind = S_ASSIGNMENT;
 
             expect(ts, T_SEMICOLON);
         } else {
@@ -131,10 +131,10 @@ Expr parse_expr(TokenIter *ts) {
     ts->position++;
 
     Expr expr = {0};
-    expr.kind = VALUE;
+    expr.kind = E_VALUE;
 
     ValueExpr *value = &expr.value.v;
-    value->kind = NUMBER;
+    value->kind = V_NUMBER;
     value->value.sint = 15;
 
     return expr;
