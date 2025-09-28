@@ -86,20 +86,23 @@ parse_statements:
     expect(ts, T_LBRACE);
 
     while (true) {
+        Statement stmt = {0};
+
         if (checkn(ts, T_IDENT, T_IDENT, 0)) {
             ts->position -= 2;
 
-            DefinitionStatement *def = calloc(1, sizeof(DefinitionStatement));
-            def->skind = DEFINITION;
+            stmt.kind = DEFINITION;
+
+            DefinitionStatement *def = &stmt.value.d;
             def->decl = parse_declaration(ts);
             expect(ts, T_EQUAL);
             def->expr = parse_expr(ts);
 
             expect(ts, T_SEMICOLON);
 
-            append(&stmts, (Statement *)def)
+            append(&stmts, stmt)
         } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
-            // parse assignment
+            stmt.kind = ASSIGNMENT;
 
             expect(ts, T_SEMICOLON);
         } else {
@@ -124,13 +127,15 @@ Declaration parse_declaration(TokenIter *ts) {
     return decl;
 }
 
-Expr *parse_expr(TokenIter *ts) {
+Expr parse_expr(TokenIter *ts) {
     ts->position++;
 
-    ValueExpr *expr = calloc(1, sizeof(ValueExpr));
-    expr->ekind = VALUE;
-    expr->vkind = NUMBER;
-    expr->value.sint = 15;
+    Expr expr = {0};
+    expr.kind = VALUE;
 
-    return (Expr *)expr;
+    ValueExpr *value = &expr.value.v;
+    value->kind = NUMBER;
+    value->value.sint = 15;
+
+    return expr;
 }
