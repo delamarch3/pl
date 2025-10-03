@@ -41,5 +41,25 @@ int main() {
     TokenIter ts = {.array = tokens, .position = 0};
     Function func = parse_function(&ts);
 
+    for (size_t i = 0; i < func.stmts.len; i++) {
+        Statement stmt = func.stmts.items[i];
+        switch (stmt.kind) {
+        case S_DEFINITION:
+            DefinitionStatement def = stmt.value.d;
+            print_expr(&def.expr);
+            printf("\n");
+            break;
+        case S_ASSIGNMENT:
+            printf("assign\n");
+            break;
+        case S_IF:
+            printf("if\n");
+            break;
+        case S_WHILE:
+            printf("while\n");
+            break;
+        }
+    }
+
     return 0;
 }

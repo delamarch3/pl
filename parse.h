@@ -73,6 +73,7 @@ typedef struct {
 typedef union {
     String str;
     long num;
+    char ch;
 } Value;
 
 typedef enum { V_STRING, V_NUMBER, V_CHAR } ValueKind;
@@ -83,6 +84,10 @@ typedef struct {
 
 typedef struct {
     String name;
+} IdentExpr;
+
+typedef struct {
+    String name;
     Exprs args;
 } CallExpr;
 
@@ -90,6 +95,7 @@ typedef union {
     BinaryOpExpr b;
     ValueExpr v;
     CallExpr c;
+    IdentExpr id;
 } ExprValue;
 
 struct Expr {
@@ -155,6 +161,9 @@ Declaration parse_declaration(TokenIter *);
 Expr parse_expr(TokenIter *, int);
 Expr parse_prefix(TokenIter *);
 Expr parse_infix(TokenIter *, Expr, int);
-int next_bp(TokenIter *);
+
+int next_prec(BinaryOp);
 
 Expr binop(Expr, BinaryOp, Expr);
+
+void print_expr(const Expr *);

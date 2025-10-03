@@ -105,7 +105,6 @@ parse_statements:
     Statements stmts = {0};
 
     expect(ts, T_LBRACE);
-
     while (true) {
         Statement stmt = {0};
 
@@ -130,8 +129,8 @@ parse_statements:
             break;
         }
     }
-
     expect(ts, T_RBRACE);
+    func.stmts = stmts;
 
     return func;
 }
@@ -148,24 +147,30 @@ Declaration parse_declaration(TokenIter *ts) {
     return decl;
 }
 
-int next_bp(TokenIter *ts) {
+int next_prec(BinaryOp op) {
+    switch (op) {
+    case OP_ADD:
+    case OP_SUB:
+        return 2;
+    case OP_MUL:
+    case OP_DIV:
+        return 3;
+    default:
+        fprintf(stderr, "uncountered unexpected op: %d", op);
+        exit(1);
+    }
+
     return 0;
 }
 
-Expr parse_expr(TokenIter *ts, int bp) {
+Expr parse_expr(TokenIter *ts, int prec) {
     Expr expr = parse_prefix(ts);
 
     while (true) {
-        int nbp = next_bp(ts);
-        if (bp >= nbp) {
-            break;
-        }
-
         Token *t = peek(ts);
         if (t == nullptr) {
             break;
         }
-        next(ts);
 
         BinaryOp op;
         switch (t->kind) {
@@ -182,13 +187,20 @@ Expr parse_expr(TokenIter *ts, int bp) {
             op = OP_DIV;
             break;
         default:
-            panic_unexpected_token(t);
+            goto done;
         }
 
-        Expr rhs = parse_expr(ts, bp);
+        int nprec = next_prec(op);
+        if (prec >= nprec) {
+            break;
+        }
+        next(ts);
+
+        Expr rhs = parse_expr(ts, prec);
         expr = binop(expr, op, rhs);
     }
 
+done:
     return expr;
 }
 
@@ -215,6 +227,11 @@ Expr parse_prefix(TokenIter *ts) {
         expr = parse_expr(ts, 0);
         expect(ts, T_RPAREN);
         break;
+    case T_IDENT:
+        expr.kind = E_IDENT;
+        IdentExpr *id = &expr.value.id;
+        id->name = t->value;
+        break;
     default:
         panic_unexpected_token(t);
     }
@@ -231,4 +248,57 @@ Expr binop(Expr lhs, BinaryOp op, Expr rhs) {
     bop->right = box(rhs);
 
     return expr;
+}
+
+char *display_op(BinaryOp op) {
+    switch (op) {
+    case OP_ADD:
+        return "+";
+    case OP_SUB:
+        return "-";
+    case OP_MUL:
+        return "*";
+    case OP_DIV:
+        return "/";
+    case OP_LT:
+        return "<";
+    case OP_LE:
+        return "<=";
+    case OP_GT:
+        return ">";
+    case OP_GE:
+        return ">=";
+    }
+}
+
+void print_expr(const Expr *expr) {
+    switch (expr->kind) {
+    case E_BINARY_OP:
+        BinaryOpExpr b = expr->value.b;
+        printf("(%s ", display_op(b.op));
+        print_expr(b.left);
+        printf(" ");
+        print_expr(b.right);
+        printf(")");
+        break;
+    case E_VALUE:
+        ValueExpr v = expr->value.v;
+        switch (v.kind) {
+        case V_NUMBER:
+            printf("%ld", v.value.num);
+            break;
+        case V_STRING:
+            printf("%.*s", (int)v.value.str.len, v.value.str.items);
+        case V_CHAR:
+            printf("%c", v.value.ch);
+        }
+        break;
+    case E_IDENT:
+        IdentExpr id = expr->value.id;
+        printf("%.*s", (int)id.name.len, id.name.items);
+        break;
+    case E_CALL:
+        printf("TODO");
+        break;
+    }
 }
