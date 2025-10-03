@@ -3,6 +3,8 @@ int main() {
     int b = 2;
     int c = 45 + 4 * 2 / 3;
     int d = myvar - 4;
+    d = 4;
+
     // int c = a + b;
 
     // This is a comment

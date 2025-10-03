@@ -6,32 +6,20 @@
 #include "array.h"
 #include "parse.h"
 #include "token.h"
+#include "util.h"
 
 #define panic_unexpected_token(t)                                                                  \
-    ({                                                                                             \
-        char *display;                                                                             \
-        int len;                                                                                   \
-        if (t->value.items != nullptr) {                                                           \
-            display = t->value.items;                                                              \
-            len = t->value.len;                                                                    \
-        } else {                                                                                   \
-            display = &symbol_values[t->kind];                                                     \
-            len = 1;                                                                               \
-        }                                                                                          \
-        fprintf(stderr, "%ld: unexpected token: %.*s\n", t->pos.line, len, display);               \
-        exit(1);                                                                                   \
-    })
-
-#define box(x)                                                                                     \
-    ({                                                                                             \
-        auto ptr = malloc(sizeof(x));                                                              \
-        if (ptr == nullptr) {                                                                      \
-            fprintf(stderr, "malloc failed");                                                      \
-            exit(1);                                                                               \
-        }                                                                                          \
-        memcpy(ptr, &x, sizeof(x));                                                                \
-        ptr;                                                                                       \
-    })
+    char *display;                                                                                 \
+    int len;                                                                                       \
+    if (t->value.items != nullptr) {                                                               \
+        display = t->value.items;                                                                  \
+        len = t->value.len;                                                                        \
+    } else {                                                                                       \
+        display = &symbol_values[t->kind];                                                         \
+        len = 1;                                                                                   \
+    }                                                                                              \
+    fprintf(stderr, "%ld: unexpected token: %.*s\n", t->pos.line, len, display);                   \
+    exit(1);
 
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
@@ -82,6 +70,17 @@ static bool checkn(TokenIter *ts, TokenKind start, ...) {
     return true;
 }
 
+static bool checkkw(TokenIter *ts, const char *kw) {
+    Token *a = peek(ts);
+    if (a == nullptr || a->kind != T_KEYWORD || strcmp(kw, a->value.items) != 0) {
+        return false;
+    }
+
+    next(ts);
+
+    return true;
+}
+
 Function parse_function(TokenIter *ts) {
     Function func = {0};
 
@@ -122,9 +121,25 @@ parse_statements:
 
             append(&stmts, stmt)
         } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
+            ts->position -= 2;
+
             stmt.kind = S_ASSIGNMENT;
 
+            AssignmentStatement *as = &stmt.value.a;
+            Token id = expect(ts, T_IDENT);
+            as->name = id.value;
+            expect(ts, T_EQUAL);
+            as->expr = parse_expr(ts, 0);
+
             expect(ts, T_SEMICOLON);
+
+            append(&stmts, stmt);
+        } else if (checkkw(ts, "if")) {
+            TODO("if statement");
+        } else if (checkkw(ts, "while")) {
+            TODO("while statement");
+        } else if (checkkw(ts, "return")) {
+            TODO("return statement");
         } else {
             break;
         }
@@ -207,7 +222,6 @@ done:
 Expr parse_prefix(TokenIter *ts) {
     Token *t = next_token(ts);
 
-    // TODO: call(e1, e2, ..)
     ValueExpr *value;
     Expr expr = {0};
     switch (t->kind) {
@@ -228,6 +242,7 @@ Expr parse_prefix(TokenIter *ts) {
         expect(ts, T_RPAREN);
         break;
     case T_IDENT:
+        // TODO: call(e1, e2, ..)
         expr.kind = E_IDENT;
         IdentExpr *id = &expr.value.id;
         id->name = t->value;
@@ -298,7 +313,7 @@ void print_expr(const Expr *expr) {
         printf("%.*s", (int)id.name.len, id.name.items);
         break;
     case E_CALL:
-        printf("TODO");
+        TODO("print call expr");
         break;
     }
 }
