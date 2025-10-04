@@ -63,7 +63,7 @@ typedef struct {
     Expr *items;
 } Exprs;
 
-typedef enum { OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_LT, OP_LE, OP_GT, OP_GE } BinaryOp;
+typedef enum { OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_LT, OP_LE, OP_GT, OP_GE, OP_ASN } BinaryOp;
 typedef struct {
     Expr *left;
     BinaryOp op;
@@ -105,7 +105,7 @@ struct Expr {
 
 /* Statements */
 
-typedef enum { S_DEFINITION, S_ASSIGNMENT, S_IF, S_WHILE, S_RETURN } StatementKind;
+typedef enum { S_DEFINITION, S_EXPR, S_IF, S_WHILE, S_RETURN } StatementKind;
 typedef struct Statement Statement;
 
 typedef struct {
@@ -120,9 +120,8 @@ typedef struct {
 } DefinitionStatement;
 
 typedef struct {
-    String name;
     Expr expr;
-} AssignmentStatement;
+} ExprStatement;
 
 typedef struct {
     Expr expr;
@@ -140,7 +139,7 @@ typedef struct {
 
 typedef union {
     DefinitionStatement d;
-    AssignmentStatement a;
+    ExprStatement e;
     IfStatement i;
     WhileStatement w;
     ReturnStatement r;

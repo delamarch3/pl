@@ -49,8 +49,10 @@ int main() {
             print_expr(&def.expr);
             printf("\n");
             break;
-        case S_ASSIGNMENT:
-            printf("assign\n");
+        case S_EXPR:
+            ExprStatement e = stmt.value.e;
+            print_expr(&e.expr);
+            printf("\n");
             break;
         case S_IF:
             IfStatement ifs = stmt.value.i;

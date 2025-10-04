@@ -118,18 +118,6 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
         def->expr = parse_expr(ts, 0);
 
         expect(ts, T_SEMICOLON);
-    } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
-        ts->position -= 2;
-
-        stmt.kind = S_ASSIGNMENT;
-
-        AssignmentStatement *as = &stmt.value.a;
-        Token id = expect(ts, T_IDENT);
-        as->name = id.value;
-        expect(ts, T_EQUAL);
-        as->expr = parse_expr(ts, 0);
-
-        expect(ts, T_SEMICOLON);
     } else if (checkkw(ts, "if")) {
         stmt.kind = S_IF;
 
@@ -152,7 +140,19 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
             expect(ts, T_SEMICOLON);
         }
     } else {
-        *matched = false;
+        Token *t = peek(ts);
+        if (t == nullptr || (t->kind != T_IDENT && t->kind != T_LPAREN && t->kind != T_STRING &&
+                             t->kind != T_NUMBER)) {
+            *matched = false;
+            return stmt;
+        }
+
+        stmt.kind = S_EXPR;
+
+        ExprStatement *as = &stmt.value.e;
+        as->expr = parse_expr(ts, 0);
+
+        expect(ts, T_SEMICOLON);
     }
 
     return stmt;
@@ -190,6 +190,8 @@ Declaration parse_declaration(TokenIter *ts) {
 
 int next_prec(BinaryOp op) {
     switch (op) {
+    case OP_ASN:
+        return 1;
     case OP_GE:
     case OP_GT:
     case OP_LE:
@@ -220,6 +222,9 @@ Expr parse_expr(TokenIter *ts, int prec) {
 
         BinaryOp op;
         switch (t->kind) {
+        case T_EQUAL:
+            op = OP_ASN;
+            break;
         case T_PLUS:
             op = OP_ADD;
             break;
@@ -310,6 +315,8 @@ Expr binop(Expr lhs, BinaryOp op, Expr rhs) {
 
 char *display_op(BinaryOp op) {
     switch (op) {
+    case OP_ASN:
+        return "=";
     case OP_ADD:
         return "+";
     case OP_SUB:

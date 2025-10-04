@@ -3,20 +3,20 @@ int main() {
     int b = 2;
     int c = 45 + 4 * 2 / 3;
     int d = myvar - 4;
-    d = 4;
+    d = 4 > 3;
     bool f = a <= 4;
 
     // int c = a + b;
 
     // This is a comment
-    char d = "Hello, World!";
+    // char d = "Hello, World!";
 
-    if a < b {
-    }
+    // if a < b {
+    // }
 
-    while a {
-        i = 1;
-    }
+    // while a {
+    //     i = 1;
+    // }
 
-    return 1 + 1;
+    // return 1 + 1;
 }
