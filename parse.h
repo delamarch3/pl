@@ -3,43 +3,24 @@
 #include "string.h"
 #include "token.h"
 
-/*
- * declaration { ident, ident }
-
- * function {
- *     declration, declration*, statement*
- * }
- *
- * statement {
- *     definition {
- *         declration, expr
- *     }
- *     assignment {
- *         ident, expr
- *     }
- *     if {
- *         expr, statement*
- *     }
- *     while {
- *         expr, statement*
- *     }
- * }
- *
- * expr {
- *     value {
- *         string | number | char
- *     }
- *     binary {
- *         expr, op, expr
- *     }
- *     unary {
- *         op, expr
- *     }
- *     call {
- *         ident, expr*
- *     }
- * }
- */
+// decl -> ident, ident
+//
+// func -> decl ( decls ) { stmts }
+//
+// TODO: maybe remove def?
+// stmt -> def
+//         | expr
+//         | if expr stmts
+//         | while expr stmts
+//
+// expr -> ( expr )
+//         | factor
+//         | factor op factor
+//         | ident ( exprs )
+//
+// factor -> expr
+//         | ident
+//         | value
 
 typedef struct {
     String type;
