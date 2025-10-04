@@ -90,12 +90,10 @@ Function parse_function(TokenIter *ts) {
         goto parse_statements;
     }
 
-    Declarations args = {0};
     do {
         Declaration arg = parse_declaration(ts);
-        append(&args, arg);
+        append(&func.args, arg);
     } while (check(ts, T_COMMA));
-    func.args = args;
 
     expect(ts, T_RPAREN);
 
@@ -115,7 +113,6 @@ parse_statements:
             def->decl = parse_declaration(ts);
             expect(ts, T_EQUAL);
             def->expr = parse_expr(ts, 0);
-
             expect(ts, T_SEMICOLON);
 
             append(&stmts, stmt)
@@ -129,7 +126,6 @@ parse_statements:
             as->name = id.value;
             expect(ts, T_EQUAL);
             as->expr = parse_expr(ts, 0);
-
             expect(ts, T_SEMICOLON);
 
             append(&stmts, stmt);
@@ -138,7 +134,16 @@ parse_statements:
         } else if (checkkw(ts, "while")) {
             TODO("while statement");
         } else if (checkkw(ts, "return")) {
-            TODO("return statement");
+            stmt.kind = S_RETURN;
+
+            ReturnStatement *ret = &stmt.value.r;
+
+            if (!check(ts, T_SEMICOLON)) {
+                ret->expr = box(parse_expr(ts, 0));
+                expect(ts, T_SEMICOLON);
+            }
+
+            append(&stmts, stmt);
         } else {
             break;
         }

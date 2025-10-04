@@ -105,7 +105,7 @@ struct Expr {
 
 /* Statements */
 
-typedef enum { S_DEFINITION, S_ASSIGNMENT, S_IF, S_WHILE } StatementKind;
+typedef enum { S_DEFINITION, S_ASSIGNMENT, S_IF, S_WHILE, S_RETURN } StatementKind;
 typedef struct Statement Statement;
 
 typedef struct {
@@ -134,11 +134,16 @@ typedef struct {
     Statements statements;
 } WhileStatement;
 
+typedef struct {
+    Expr *expr;
+} ReturnStatement;
+
 typedef union {
     DefinitionStatement d;
     AssignmentStatement a;
     IfStatement i;
     WhileStatement w;
+    ReturnStatement r;
 } StatementValue;
 
 struct Statement {
