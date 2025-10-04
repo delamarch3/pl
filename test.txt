@@ -11,8 +11,12 @@ int main() {
     // This is a comment
     char d = "Hello, World!";
 
-    //if a < b {
-    //}
+    if a < b {
+    }
+
+    while a {
+        i = 1;
+    }
 
     return 1 + 1;
 }

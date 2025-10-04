@@ -131,9 +131,17 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
 
         expect(ts, T_SEMICOLON);
     } else if (checkkw(ts, "if")) {
-        TODO("if statement");
+        stmt.kind = S_IF;
+
+        IfStatement *ifs = &stmt.value.i;
+        ifs->expr = parse_expr(ts, 0);
+        ifs->statements = parse_statements(ts);
     } else if (checkkw(ts, "while")) {
-        TODO("while statement");
+        stmt.kind = S_WHILE;
+
+        WhileStatement *ws = &stmt.value.w;
+        ws->expr = parse_expr(ts, 0);
+        ws->statements = parse_statements(ts);
     } else if (checkkw(ts, "return")) {
         stmt.kind = S_RETURN;
 

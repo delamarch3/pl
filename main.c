@@ -53,10 +53,16 @@ int main() {
             printf("assign\n");
             break;
         case S_IF:
-            printf("if\n");
+            IfStatement ifs = stmt.value.i;
+            printf("if");
+            print_expr(&ifs.expr);
+            printf("\n");
             break;
         case S_WHILE:
-            printf("while\n");
+            WhileStatement ws = stmt.value.w;
+            printf("while");
+            print_expr(&ws.expr);
+            printf("\n");
             break;
         case S_RETURN:
             ReturnStatement ret = stmt.value.r;
