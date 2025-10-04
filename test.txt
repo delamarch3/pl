@@ -4,11 +4,12 @@ int main() {
     int c = 45 + 4 * 2 / 3;
     int d = myvar - 4;
     d = 4;
+    bool f = a <= 4;
 
     // int c = a + b;
 
     // This is a comment
-    // char d = "Hello, World!";
+    char d = "Hello, World!";
 
     // if a < b {
     // }

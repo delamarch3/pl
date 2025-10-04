@@ -10,10 +10,11 @@ TokenKind symbol_tokens[256] = {
     ['='] = T_EQUAL,  ['-'] = T_MINUS,  ['+'] = T_PLUS,   ['/'] = T_SLASH,  ['*'] = T_STAR,
     ['<'] = T_LT,     ['>'] = T_GT,     [','] = T_COMMA,  ['['] = T_LBRACK, [']'] = T_RBRACK};
 
-char symbol_values[256] = {
-    [T_LPAREN] = '(', [T_RPAREN] = ')', [T_LBRACE] = '{', [T_RBRACE] = '}', [T_SEMICOLON] = ';',
-    [T_EQUAL] = '=',  [T_MINUS] = '-',  [T_PLUS] = '+',   [T_SLASH] = '/',  [T_STAR] = '*',
-    [T_LT] = '<',     [T_GT] = '>',     [T_COMMA] = ',',  [T_LBRACK] = '[', [T_RBRACK] = ']'};
+char *symbol_values[256] = {
+    [T_LPAREN] = "(", [T_RPAREN] = ")", [T_LBRACE] = "{", [T_RBRACE] = "}", [T_SEMICOLON] = ";",
+    [T_EQUAL] = "=",  [T_MINUS] = "-",  [T_PLUS] = "+",   [T_SLASH] = "/",  [T_STAR] = "*",
+    [T_LT] = "<",     [T_LE] = "<=",    [T_GT] = ">",     [T_GE] = ">=",    [T_COMMA] = ",",
+    [T_LBRACK] = "[", [T_RBRACK] = "]"};
 
 char *keywords[] = {"if", "else", "while", "for", "return", "null"};
 
@@ -147,6 +148,24 @@ Tokens tokenise(const String *s) {
 
             tok.kind = T_STRING;
             tok.value = value;
+        } else if (*c == '<') {
+            next(&chars);
+            tok.kind = T_LT;
+
+            char *n = peek(&chars);
+            if (n != nullptr && *n == '=') {
+                next(&chars);
+                tok.kind = T_LE;
+            }
+        } else if (*c == '>') {
+            next(&chars);
+            tok.kind = T_GT;
+
+            char *n = peek(&chars);
+            if (n != nullptr && *n == '=') {
+                next(&chars);
+                tok.kind = T_GE;
+            }
         } else {
             next(&chars);
 

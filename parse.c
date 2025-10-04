@@ -10,15 +10,14 @@
 
 #define panic_unexpected_token(t)                                                                  \
     char *display;                                                                                 \
-    int len;                                                                                       \
     if (t->value.items != nullptr) {                                                               \
         display = t->value.items;                                                                  \
-        len = t->value.len;                                                                        \
+        int len = t->value.len;                                                                    \
+        fprintf(stderr, "%ld: unexpected token: %.*s\n", t->pos.line, len, display);               \
     } else {                                                                                       \
-        display = &symbol_values[t->kind];                                                         \
-        len = 1;                                                                                   \
+        display = symbol_values[t->kind];                                                          \
+        fprintf(stderr, "%ld: unexpected token: %s\n", t->pos.line, display);                      \
     }                                                                                              \
-    fprintf(stderr, "%ld: unexpected token: %.*s\n", t->pos.line, len, display);                   \
     exit(1);
 
 static Token *next_token(TokenIter *ts) {
@@ -164,12 +163,17 @@ Declaration parse_declaration(TokenIter *ts) {
 
 int next_prec(BinaryOp op) {
     switch (op) {
+    case OP_GE:
+    case OP_GT:
+    case OP_LE:
+    case OP_LT:
+        return 8;
     case OP_ADD:
     case OP_SUB:
-        return 2;
+        return 9;
     case OP_MUL:
     case OP_DIV:
-        return 3;
+        return 10;
     default:
         fprintf(stderr, "uncountered unexpected op: %d", op);
         exit(1);
@@ -200,6 +204,18 @@ Expr parse_expr(TokenIter *ts, int prec) {
             break;
         case T_SLASH:
             op = OP_DIV;
+            break;
+        case T_LT:
+            op = OP_LT;
+            break;
+        case T_GT:
+            op = OP_GT;
+            break;
+        case T_LE:
+            op = OP_LE;
+            break;
+        case T_GE:
+            op = OP_GE;
             break;
         default:
             goto done;

@@ -33,7 +33,7 @@ int main() {
         case T_EOF:
             break;
         default:
-            printf("%c\n", symbol_values[t.kind]);
+            printf("%s\n", symbol_values[t.kind]);
             break;
         }
     }

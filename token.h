@@ -26,7 +26,9 @@ typedef enum {
     T_SLASH,
     T_STAR,
     T_LT,
+    T_LE,
     T_GT,
+    T_GE,
     T_COMMA,
 
     T_EOF,
@@ -55,6 +57,6 @@ typedef struct {
 
 TokenKind symbol_tokens[256];
 
-char symbol_values[256];
+char *symbol_values[256];
 
 Tokens tokenise(const String *);
