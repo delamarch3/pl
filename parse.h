@@ -161,6 +161,7 @@ typedef struct {
 
 Function parse_function(TokenIter *);
 Statement parse_statement(TokenIter *, bool *);
+Statements parse_statements(TokenIter *);
 Declaration parse_declaration(TokenIter *);
 
 Expr parse_expr(TokenIter *, int);

@@ -88,32 +88,17 @@ Function parse_function(TokenIter *ts) {
 
     expect(ts, T_LPAREN);
     if (check(ts, T_RPAREN)) {
-        goto parse_statements;
+        func.stmts = parse_statements(ts);
+        return func;
     }
 
     do {
         Declaration arg = parse_declaration(ts);
         append(&func.args, arg);
     } while (check(ts, T_COMMA));
-
     expect(ts, T_RPAREN);
 
-parse_statements:
-    Statements stmts = {0};
-
-    expect(ts, T_LBRACE);
-    while (true) {
-        bool matched = false;
-        Statement stmt = parse_statement(ts, &matched);
-        if (!matched) {
-            break;
-        }
-
-        append(&stmts, stmt);
-    }
-
-    expect(ts, T_RBRACE);
-    func.stmts = stmts;
+    func.stmts = parse_statements(ts);
 
     return func;
 }
@@ -163,6 +148,24 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
     }
 
     return stmt;
+}
+
+Statements parse_statements(TokenIter *ts) {
+    Statements stmts = {0};
+
+    expect(ts, T_LBRACE);
+    while (true) {
+        bool matched = false;
+        Statement stmt = parse_statement(ts, &matched);
+        if (!matched) {
+            break;
+        }
+
+        append(&stmts, stmt);
+    }
+    expect(ts, T_RBRACE);
+
+    return stmts;
 }
 
 Declaration parse_declaration(TokenIter *ts) {
