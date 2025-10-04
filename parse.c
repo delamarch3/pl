@@ -22,6 +22,10 @@
     }                                                                                              \
     exit(1);
 
+static char *op_values[] = {
+    [OP_ASN] = "=", [OP_ADD] = "+", [OP_SUB] = "-", [OP_MUL] = "*", [OP_DIV] = "/",
+    [OP_LT] = "<",  [OP_LE] = "<=", [OP_GT] = ">",  [OP_GE] = ">="};
+
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
     if (t == nullptr) {
@@ -313,29 +317,6 @@ Expr binop(Expr lhs, BinaryOp op, Expr rhs) {
     return expr;
 }
 
-char *display_op(BinaryOp op) {
-    switch (op) {
-    case OP_ASN:
-        return "=";
-    case OP_ADD:
-        return "+";
-    case OP_SUB:
-        return "-";
-    case OP_MUL:
-        return "*";
-    case OP_DIV:
-        return "/";
-    case OP_LT:
-        return "<";
-    case OP_LE:
-        return "<=";
-    case OP_GT:
-        return ">";
-    case OP_GE:
-        return ">=";
-    }
-}
-
 void print_expr(const Expr *expr) {
     if (expr == nullptr) {
         return;
@@ -344,7 +325,7 @@ void print_expr(const Expr *expr) {
     switch (expr->kind) {
     case E_BINARY_OP:
         BinaryOpExpr b = expr->value.b;
-        printf("(%s ", display_op(b.op));
+        printf("(%s ", op_values[b.op]);
         print_expr(b.left);
         printf(" ");
         print_expr(b.right);
