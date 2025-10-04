@@ -377,3 +377,50 @@ void print_expr(const Expr *expr) {
         break;
     }
 }
+
+void print_statements(const Statements *stmts, int tab) {
+    if (stmts == nullptr) {
+        return;
+    }
+
+    for (size_t i = 0; i < stmts->len; i++) {
+        printf("%*s", tab * 4, "");
+        print_statement(&stmts->items[i], tab);
+        printf("\n");
+    }
+}
+
+void print_statement(const Statement *stmt, int tab) {
+    if (stmt == nullptr) {
+        return;
+    }
+
+    switch (stmt->kind) {
+    case S_DEFINITION:
+        DefinitionStatement def = stmt->value.d;
+        print_expr(&def.expr);
+        break;
+    case S_EXPR:
+        ExprStatement e = stmt->value.e;
+        print_expr(&e.expr);
+        break;
+    case S_IF:
+        IfStatement ifs = stmt->value.i;
+        printf("if ");
+        print_expr(&ifs.expr);
+        printf("\n");
+        print_statements(&ifs.statements, tab + 1);
+        break;
+    case S_WHILE:
+        WhileStatement ws = stmt->value.w;
+        printf("while ");
+        print_expr(&ws.expr);
+        printf("\n");
+        print_statements(&ws.statements, tab + 1);
+        break;
+    case S_RETURN:
+        ReturnStatement ret = stmt->value.r;
+        printf("return");
+        print_expr(ret.expr);
+    }
+}

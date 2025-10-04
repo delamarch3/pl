@@ -20,59 +20,28 @@ int main() {
     String src = string_from_file(fd);
     Tokens tokens = tokenise(&src);
 
-    for (size_t i = 0; i < tokens.len; i++) {
-        Token t = tokens.items[i];
-        printf("line %ld: ", t.pos.line);
-        switch (t.kind) {
-        case T_IDENT:
-        case T_KEYWORD:
-        case T_NUMBER:
-        case T_STRING:
-            printf("%.*s\n", (int)t.value.len, t.value.items);
-            break;
-        case T_EOF:
-            break;
-        default:
-            printf("%s\n", symbol_values[t.kind]);
-            break;
-        }
-    }
+    // for (size_t i = 0; i < tokens.len; i++) {
+    //     Token t = tokens.items[i];
+    //     printf("line %ld: ", t.pos.line);
+    //     switch (t.kind) {
+    //     case T_IDENT:
+    //     case T_KEYWORD:
+    //     case T_NUMBER:
+    //     case T_STRING:
+    //         printf("%.*s\n", (int)t.value.len, t.value.items);
+    //         break;
+    //     case T_EOF:
+    //         break;
+    //     default:
+    //         printf("%s\n", symbol_values[t.kind]);
+    //         break;
+    //     }
+    // }
 
     TokenIter ts = {.array = tokens, .position = 0};
     Function func = parse_function(&ts);
 
-    for (size_t i = 0; i < func.stmts.len; i++) {
-        Statement stmt = func.stmts.items[i];
-        switch (stmt.kind) {
-        case S_DEFINITION:
-            DefinitionStatement def = stmt.value.d;
-            print_expr(&def.expr);
-            printf("\n");
-            break;
-        case S_EXPR:
-            ExprStatement e = stmt.value.e;
-            print_expr(&e.expr);
-            printf("\n");
-            break;
-        case S_IF:
-            IfStatement ifs = stmt.value.i;
-            printf("if");
-            print_expr(&ifs.expr);
-            printf("\n");
-            break;
-        case S_WHILE:
-            WhileStatement ws = stmt.value.w;
-            printf("while");
-            print_expr(&ws.expr);
-            printf("\n");
-            break;
-        case S_RETURN:
-            ReturnStatement ret = stmt.value.r;
-            printf("return");
-            print_expr(ret.expr);
-            printf("\n");
-        }
-    }
+    print_statements(&func.stmts, 0);
 
     return 0;
 }

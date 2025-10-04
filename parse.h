@@ -153,3 +153,5 @@ int next_prec(BinaryOp);
 Expr binop(Expr, BinaryOp, Expr);
 
 void print_expr(const Expr *);
+void print_statement(const Statement *, int);
+void print_statements(const Statements *, int);
