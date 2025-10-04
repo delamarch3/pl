@@ -10,7 +10,9 @@
 
 #define panic_unexpected_token(t)                                                                  \
     char *display;                                                                                 \
-    if (t->value.items != nullptr) {                                                               \
+    if (t == nullptr) {                                                                            \
+        fprintf(stderr, "unexpected eof\n");                                                       \
+    } else if (t->value.items != nullptr) {                                                        \
         display = t->value.items;                                                                  \
         int len = t->value.len;                                                                    \
         fprintf(stderr, "%ld: unexpected token: %.*s\n", t->pos.line, len, display);               \
@@ -23,8 +25,7 @@
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
     if (t == nullptr) {
-        fprintf(stderr, "unexpected eof\n");
-        exit(1);
+        panic_unexpected_token(t);
     }
 
     return t;
@@ -102,56 +103,66 @@ parse_statements:
 
     expect(ts, T_LBRACE);
     while (true) {
-        Statement stmt = {0};
-
-        if (checkn(ts, T_IDENT, T_IDENT, 0)) {
-            ts->position -= 2;
-
-            stmt.kind = S_DEFINITION;
-
-            DefinitionStatement *def = &stmt.value.d;
-            def->decl = parse_declaration(ts);
-            expect(ts, T_EQUAL);
-            def->expr = parse_expr(ts, 0);
-            expect(ts, T_SEMICOLON);
-
-            append(&stmts, stmt)
-        } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
-            ts->position -= 2;
-
-            stmt.kind = S_ASSIGNMENT;
-
-            AssignmentStatement *as = &stmt.value.a;
-            Token id = expect(ts, T_IDENT);
-            as->name = id.value;
-            expect(ts, T_EQUAL);
-            as->expr = parse_expr(ts, 0);
-            expect(ts, T_SEMICOLON);
-
-            append(&stmts, stmt);
-        } else if (checkkw(ts, "if")) {
-            TODO("if statement");
-        } else if (checkkw(ts, "while")) {
-            TODO("while statement");
-        } else if (checkkw(ts, "return")) {
-            stmt.kind = S_RETURN;
-
-            ReturnStatement *ret = &stmt.value.r;
-
-            if (!check(ts, T_SEMICOLON)) {
-                ret->expr = box(parse_expr(ts, 0));
-                expect(ts, T_SEMICOLON);
-            }
-
-            append(&stmts, stmt);
-        } else {
+        bool matched = false;
+        Statement stmt = parse_statement(ts, &matched);
+        if (!matched) {
             break;
         }
+
+        append(&stmts, stmt);
     }
+
     expect(ts, T_RBRACE);
     func.stmts = stmts;
 
     return func;
+}
+
+Statement parse_statement(TokenIter *ts, bool *matched) {
+    Statement stmt = {0};
+    *matched = true;
+
+    if (checkn(ts, T_IDENT, T_IDENT, 0)) {
+        ts->position -= 2;
+
+        stmt.kind = S_DEFINITION;
+
+        DefinitionStatement *def = &stmt.value.d;
+        def->decl = parse_declaration(ts);
+        expect(ts, T_EQUAL);
+        def->expr = parse_expr(ts, 0);
+
+        expect(ts, T_SEMICOLON);
+    } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
+        ts->position -= 2;
+
+        stmt.kind = S_ASSIGNMENT;
+
+        AssignmentStatement *as = &stmt.value.a;
+        Token id = expect(ts, T_IDENT);
+        as->name = id.value;
+        expect(ts, T_EQUAL);
+        as->expr = parse_expr(ts, 0);
+
+        expect(ts, T_SEMICOLON);
+    } else if (checkkw(ts, "if")) {
+        TODO("if statement");
+    } else if (checkkw(ts, "while")) {
+        TODO("while statement");
+    } else if (checkkw(ts, "return")) {
+        stmt.kind = S_RETURN;
+
+        ReturnStatement *ret = &stmt.value.r;
+
+        if (!check(ts, T_SEMICOLON)) {
+            ret->expr = box(parse_expr(ts, 0));
+            expect(ts, T_SEMICOLON);
+        }
+    } else {
+        *matched = false;
+    }
+
+    return stmt;
 }
 
 Declaration parse_declaration(TokenIter *ts) {
@@ -308,6 +319,10 @@ char *display_op(BinaryOp op) {
 }
 
 void print_expr(const Expr *expr) {
+    if (expr == nullptr) {
+        return;
+    }
+
     switch (expr->kind) {
     case E_BINARY_OP:
         BinaryOpExpr b = expr->value.b;
@@ -316,6 +331,7 @@ void print_expr(const Expr *expr) {
         printf(" ");
         print_expr(b.right);
         printf(")");
+
         break;
     case E_VALUE:
         ValueExpr v = expr->value.v;
@@ -325,16 +341,21 @@ void print_expr(const Expr *expr) {
             break;
         case V_STRING:
             printf("%.*s", (int)v.value.str.len, v.value.str.items);
+            break;
         case V_CHAR:
             printf("%c", v.value.ch);
+            break;
         }
+
         break;
     case E_IDENT:
         IdentExpr id = expr->value.id;
         printf("%.*s", (int)id.name.len, id.name.items);
+
         break;
     case E_CALL:
         TODO("print call expr");
+
         break;
     }
 }

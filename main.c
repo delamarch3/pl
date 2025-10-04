@@ -58,6 +58,11 @@ int main() {
         case S_WHILE:
             printf("while\n");
             break;
+        case S_RETURN:
+            ReturnStatement ret = stmt.value.r;
+            printf("return");
+            print_expr(ret.expr);
+            printf("\n");
         }
     }
 
