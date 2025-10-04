@@ -142,7 +142,7 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
     } else {
         Token *t = peek(ts);
         if (t == nullptr || (t->kind != T_IDENT && t->kind != T_LPAREN && t->kind != T_STRING &&
-                             t->kind != T_NUMBER)) {
+                             t->kind != T_NUMBER)) { // parse_prefix
             *matched = false;
             return stmt;
         }
