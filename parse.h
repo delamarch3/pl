@@ -3,6 +3,8 @@
 #include "string.h"
 #include "token.h"
 
+// program -> functions
+//
 // decl -> ident, ident
 //
 // func -> decl ( decls ) { stmts }
