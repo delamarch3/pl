@@ -64,3 +64,5 @@ TokenKind symbol_tokens[256];
 char *symbol_values[256];
 
 Tokens tokenise(const String *);
+
+void print_tokens(const Tokens *);

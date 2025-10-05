@@ -223,3 +223,27 @@ Tokens tokenise(const String *s) {
 
     return toks;
 }
+
+void print_tokens(const Tokens *tokens) {
+    if (tokens == nullptr) {
+        return;
+    }
+
+    for (size_t i = 0; i < tokens->len; i++) {
+        Token t = tokens->items[i];
+        printf("line %ld: ", t.pos.line);
+        switch (t.kind) {
+        case T_IDENT:
+        case T_KEYWORD:
+        case T_NUMBER:
+        case T_STRING:
+            printf("%.*s\n", (int)t.value.len, t.value.items);
+            break;
+        case T_EOF:
+            break;
+        default:
+            printf("%s\n", symbol_values[t.kind]);
+            break;
+        }
+    }
+}

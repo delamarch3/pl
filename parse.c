@@ -86,6 +86,14 @@ static bool checkkw(TokenIter *ts, const char *kw) {
     return true;
 }
 
+Program parse_program(TokenIter *ts) {
+    Program prg = {0};
+
+    prg.funcs = parse_functions(ts);
+
+    return prg;
+}
+
 Function parse_function(TokenIter *ts) {
     Function func = {0};
 
@@ -106,6 +114,17 @@ Function parse_function(TokenIter *ts) {
     func.stmts = parse_statements(ts);
 
     return func;
+}
+
+Functions parse_functions(TokenIter *ts) {
+    Functions funcs = {0};
+
+    do {
+        Function func = parse_function(ts);
+        append(&funcs, func);
+    } while (peek(ts) != nullptr);
+
+    return funcs;
 }
 
 Statement parse_statement(TokenIter *ts, bool *matched) {
@@ -377,7 +396,7 @@ void print_expr(const Expr *expr) {
             printf("%ld", v.value.num);
             break;
         case V_STRING:
-            printf("%.*s", (int)v.value.str.len, v.value.str.items);
+            printf("\"%.*s\"", (int)v.value.str.len, v.value.str.items);
             break;
         case V_CHAR:
             printf("%c", v.value.ch);
@@ -447,7 +466,8 @@ void print_statement(const Statement *stmt, int tab) {
         break;
     case S_RETURN:
         ReturnStatement ret = stmt->value.r;
-        printf("return");
+        printf("return(");
         print_expr(ret.expr);
+        printf(")");
     }
 }

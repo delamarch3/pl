@@ -20,28 +20,13 @@ int main() {
     String src = string_from_file(fd);
     Tokens tokens = tokenise(&src);
 
-    // for (size_t i = 0; i < tokens.len; i++) {
-    //     Token t = tokens.items[i];
-    //     printf("line %ld: ", t.pos.line);
-    //     switch (t.kind) {
-    //     case T_IDENT:
-    //     case T_KEYWORD:
-    //     case T_NUMBER:
-    //     case T_STRING:
-    //         printf("%.*s\n", (int)t.value.len, t.value.items);
-    //         break;
-    //     case T_EOF:
-    //         break;
-    //     default:
-    //         printf("%s\n", symbol_values[t.kind]);
-    //         break;
-    //     }
-    // }
-
     TokenIter ts = {.array = tokens, .position = 0};
-    Function func = parse_function(&ts);
+    Program prg = parse_program(&ts);
 
-    print_statements(&func.stmts, 0);
+    for (size_t i = 0; i < prg.funcs.len; i++) {
+        Function *func = &prg.funcs.items[i];
+        print_statements(&func->stmts, 0);
+    }
 
     return 0;
 }
