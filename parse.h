@@ -12,8 +12,8 @@
 // TODO: maybe remove def?
 // stmt -> def
 //         | expr
-//         | if expr stmts
-//         | while expr stmts
+//         | if expr { stmts }
+//         | while expr { stmts }
 //
 // expr -> ( expr )
 //         | factor

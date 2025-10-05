@@ -294,10 +294,28 @@ Expr parse_prefix(TokenIter *ts) {
         expect(ts, T_RPAREN);
         break;
     case T_IDENT:
-        // TODO: call(e1, e2, ..)
-        expr.kind = E_IDENT;
-        IdentExpr *id = &expr.value.id;
-        id->name = t->value;
+        Token *n = peek(ts);
+        if (n == nullptr || n->kind != T_LPAREN) {
+            expr.kind = E_IDENT;
+            IdentExpr *id = &expr.value.id;
+            id->name = t->value;
+        } else {
+            expr.kind = E_CALL;
+            CallExpr *c = &expr.value.c;
+            c->name = t->value;
+
+            expect(ts, T_LPAREN);
+            if (check(ts, T_RPAREN)) {
+                return expr;
+            }
+
+            do {
+                Expr expr = parse_expr(ts, 0);
+                append(&c->args, expr);
+            } while (check(ts, T_COMMA));
+            expect(ts, T_RPAREN);
+        }
+
         break;
     default:
         panic_unexpected_token(t);
@@ -353,7 +371,15 @@ void print_expr(const Expr *expr) {
 
         break;
     case E_CALL:
-        TODO("print call expr");
+        char *sep = "";
+        CallExpr c = expr->value.c;
+        printf("%.*s(", (int)c.name.len, c.name.items);
+        for (size_t i = 0; i < c.args.len; i++) {
+            printf("%s", sep);
+            print_expr(&c.args.items[i]);
+            sep = ", ";
+        }
+        printf(")");
 
         break;
     }
