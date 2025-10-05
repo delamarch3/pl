@@ -46,7 +46,21 @@ typedef struct {
     Expr *items;
 } Exprs;
 
-typedef enum { OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_LT, OP_LE, OP_GT, OP_GE, OP_ASN } BinaryOp;
+typedef enum {
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+    OP_LT,
+    OP_LE,
+    OP_GT,
+    OP_GE,
+    OP_ASN,
+    OP_EQY,
+    OP_NEQY,
+    OP_LAND,
+    OP_LOR
+} BinaryOp;
 typedef struct {
     Expr *left;
     BinaryOp op;
@@ -141,6 +155,7 @@ typedef struct {
     Statements stmts;
 } Function;
 
+// TODO: parse_program
 Function parse_function(TokenIter *);
 Statement parse_statement(TokenIter *, bool *);
 Statements parse_statements(TokenIter *);
@@ -148,8 +163,6 @@ Declaration parse_declaration(TokenIter *);
 
 Expr parse_expr(TokenIter *, int);
 Expr parse_prefix(TokenIter *);
-Expr parse_infix(TokenIter *, Expr, int);
-
 int next_prec(BinaryOp);
 
 Expr binop(Expr, BinaryOp, Expr);

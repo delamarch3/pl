@@ -8,19 +8,20 @@ int main() {
     d = 4 > 3;
     bool f = a <= 4;
 
-    // int c = a + b;
+    if ( 1 == 2 && 3 * 2 == 7 ) {
+        a || b;
+    }
 
-    // This is a comment
     // char d = "Hello, World!";
 
-    if a < b {
-        a + 1;
-        int c = 2;
-    }
+    // if a < b {
+    //     a + 1;
+    //     int c = 2;
+    // }
 
-    while a {
-        i = 1;
-    }
+    // while a {
+    //     i = 1;
+    // }
 
     // return 1 + 1;
 }

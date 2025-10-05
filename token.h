@@ -21,6 +21,8 @@ typedef enum {
     T_RBRACK,
     T_SEMICOLON,
     T_EQUAL,
+    T_EQUALITY,
+    T_NEQUALITY,
     T_MINUS,
     T_PLUS,
     T_SLASH,
@@ -30,6 +32,8 @@ typedef enum {
     T_GT,
     T_GE,
     T_COMMA,
+    T_LAND,
+    T_LOR,
 
     T_EOF,
 } TokenKind;

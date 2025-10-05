@@ -5,16 +5,25 @@
 #include "string.h"
 #include "token.h"
 
+#define panic_unexpected_symbol(c)                                                                 \
+    if (c == nullptr) {                                                                            \
+        fprintf(stderr, "unexpected eof\n");                                                       \
+    }                                                                                              \
+    fprintf(stderr, "unexpected symbol: %c\n", *c);                                                \
+    exit(1);
+
 TokenKind symbol_tokens[256] = {
     ['('] = T_LPAREN, [')'] = T_RPAREN, ['{'] = T_LBRACE, ['}'] = T_RBRACE, [';'] = T_SEMICOLON,
     ['='] = T_EQUAL,  ['-'] = T_MINUS,  ['+'] = T_PLUS,   ['/'] = T_SLASH,  ['*'] = T_STAR,
     ['<'] = T_LT,     ['>'] = T_GT,     [','] = T_COMMA,  ['['] = T_LBRACK, [']'] = T_RBRACK};
 
 char *symbol_values[256] = {
-    [T_LPAREN] = "(", [T_RPAREN] = ")", [T_LBRACE] = "{", [T_RBRACE] = "}", [T_SEMICOLON] = ";",
-    [T_EQUAL] = "=",  [T_MINUS] = "-",  [T_PLUS] = "+",   [T_SLASH] = "/",  [T_STAR] = "*",
-    [T_LT] = "<",     [T_LE] = "<=",    [T_GT] = ">",     [T_GE] = ">=",    [T_COMMA] = ",",
-    [T_LBRACK] = "[", [T_RBRACK] = "]"};
+    [T_LPAREN] = "(",    [T_RPAREN] = ")",    [T_LBRACE] = "{",     [T_RBRACE] = "}",
+    [T_SEMICOLON] = ";", [T_EQUAL] = "=",     [T_MINUS] = "-",      [T_PLUS] = "+",
+    [T_SLASH] = "/",     [T_STAR] = "*",      [T_LT] = "<",         [T_LE] = "<=",
+    [T_GT] = ">",        [T_GE] = ">=",       [T_COMMA] = ",",      [T_LBRACK] = "[",
+    [T_RBRACK] = "]",    [T_EQUALITY] = "==", [T_NEQUALITY] = "!=", [T_LAND] = "&&",
+    [T_LOR] = "||"};
 
 char *keywords[] = {"if", "else", "while", "for", "return", "null"};
 
@@ -166,13 +175,45 @@ Tokens tokenise(const String *s) {
                 next(&chars);
                 tok.kind = T_GE;
             }
+        } else if (*c == '&') {
+            next(&chars);
+            char *n = next(&chars);
+            if (n == nullptr || *n != '&') {
+                panic_unexpected_symbol(c);
+            }
+
+            tok.kind = T_LAND;
+        } else if (*c == '|') {
+            next(&chars);
+            char *n = next(&chars);
+            if (n == nullptr || *n != '|') {
+                panic_unexpected_symbol(c);
+            }
+
+            tok.kind = T_LOR;
+        } else if (*c == '!') {
+            next(&chars);
+            char *n = next(&chars);
+            if (n == nullptr || *n != '=') {
+                panic_unexpected_symbol(c);
+            }
+
+            tok.kind = T_NEQUALITY;
+        } else if (*c == '=') {
+            next(&chars);
+            char *n = peek(&chars);
+            if (n != nullptr && *n == '=') {
+                next(&chars);
+                tok.kind = T_EQUALITY;
+            } else {
+                tok.kind = T_EQUAL;
+            }
         } else {
             next(&chars);
 
             tok.kind = symbol_tokens[*c];
             if (tok.kind == 0) {
-                fprintf(stderr, "unexpected symbol: %c\n", *c);
-                exit(1);
+                panic_unexpected_symbol(c);
             }
         }
 

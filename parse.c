@@ -23,8 +23,9 @@
     exit(1);
 
 static char *op_values[] = {
-    [OP_ASN] = "=", [OP_ADD] = "+", [OP_SUB] = "-", [OP_MUL] = "*", [OP_DIV] = "/",
-    [OP_LT] = "<",  [OP_LE] = "<=", [OP_GT] = ">",  [OP_GE] = ">="};
+    [OP_ASN] = "=",   [OP_ADD] = "+",   [OP_SUB] = "-", [OP_MUL] = "*", [OP_DIV] = "/",
+    [OP_LT] = "<",    [OP_LE] = "<=",   [OP_GT] = ">",  [OP_GE] = ">=", [OP_EQY] = "==",
+    [OP_NEQY] = "!=", [OP_LAND] = "&&", [OP_LOR] = "||"};
 
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
@@ -196,6 +197,13 @@ int next_prec(BinaryOp op) {
     switch (op) {
     case OP_ASN:
         return 1;
+    case OP_LOR:
+        return 2;
+    case OP_LAND:
+        return 3;
+    case OP_EQY:
+    case OP_NEQY:
+        return 4;
     case OP_GE:
     case OP_GT:
     case OP_LE:
@@ -253,6 +261,18 @@ Expr parse_expr(TokenIter *ts, int prec) {
         case T_GE:
             op = OP_GE;
             break;
+        case T_EQUALITY:
+            op = OP_EQY;
+            break;
+        case T_NEQUALITY:
+            op = OP_NEQY;
+            break;
+        case T_LAND:
+            op = OP_LAND;
+            break;
+        case T_LOR:
+            op = OP_LOR;
+            break;
         default:
             goto done;
         }
@@ -263,7 +283,7 @@ Expr parse_expr(TokenIter *ts, int prec) {
         }
         next(ts);
 
-        Expr rhs = parse_expr(ts, prec);
+        Expr rhs = parse_expr(ts, nprec);
         expr = binop(expr, op, rhs);
     }
 
