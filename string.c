@@ -7,23 +7,25 @@
 #include "string.h"
 
 String string_from_file(int fd) {
-    char *buf = malloc(ARRAY_CAP);
-    char *ptr = buf;
-
-    size_t cap = ARRAY_CAP;
-    size_t len = 0;
-    ssize_t n;
-    while ((n = read(fd, ptr, ARRAY_CAP)) > 0) {
-        len += n;
-        if (len == cap) {
-            cap *= ARRAY_MUL;
-            buf = realloc(buf, cap);
-        }
-
-        ptr = buf;
-        ptr += len;
+    off_t size = lseek(fd, 0, SEEK_END);
+    if (size == -1) {
+        fprintf(stderr, "lseek: %s", strerror(errno));
+        exit(1);
     }
 
+    if (lseek(fd, 0, SEEK_SET) == -1) {
+        fprintf(stderr, "lseek: %s", strerror(errno));
+        exit(1);
+    }
+
+    char *buf = malloc(size);
+    char *ptr = buf;
+
+    ssize_t n;
+    while ((n = read(fd, ptr, size)) > 0) {
+        ptr = buf;
+        ptr += n;
+    }
     if (n == -1) {
         fprintf(stderr, "read: %s", strerror(errno));
         exit(1);
@@ -31,8 +33,8 @@ String string_from_file(int fd) {
 
     String s = {
         .items = buf,
-        .cap = cap,
-        .len = len,
+        .cap = size,
+        .len = size,
     };
 
     return s;
