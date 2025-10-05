@@ -5,7 +5,7 @@ int main() {
     int b = 2;
     int c = 45 + 4 * 2 / 3;
     int d = myvar - 4;
-    d = 4 > 3;
+    d;
     bool f = a <= 4;
 
     if ( 1 == 2 && 3 * 2 == 7 ) {

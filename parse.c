@@ -293,7 +293,7 @@ Expr parse_expr(TokenIter *ts, int prec) {
             op = OP_LOR;
             break;
         default:
-            goto done;
+            return expr;
         }
 
         int nprec = next_prec(op);
@@ -306,7 +306,6 @@ Expr parse_expr(TokenIter *ts, int prec) {
         expr = binop(expr, op, rhs);
     }
 
-done:
     return expr;
 }
 
