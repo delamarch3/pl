@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "gen.h"
 #include "parse.h"
 #include "string.h"
 #include "token.h"
@@ -23,10 +24,7 @@ int main() {
     TokenIter ts = {.array = tokens, .position = 0};
     Program prg = parse_program(&ts);
 
-    for (size_t i = 0; i < prg.funcs.len; i++) {
-        Function *func = &prg.funcs.items[i];
-        print_statements(&func->stmts, 0);
-    }
+    gen_program(&prg);
 
     return 0;
 }

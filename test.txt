@@ -1,12 +1,13 @@
 int main() {
-    fn(1 + 1, s/6);
+    int a = 1 + 1;
+    // fn(1 + 1, s/6);
 
-    int a = (-134424 + 2) * 4;
+    // int b = (-134424 + 2) * 4;
     int b = 2;
-    int c = 45 + 4 * 2 / 3;
-    int d = myvar - 4;
-    d;
-    bool f = a <= 4;
+    // int c = 45 + 4 * 2 / 3;
+    // int d = myvar - 4;
+    // d;
+    // bool f = a <= 4;
 
     if ( 1 == 2 && 3 * 2 == 7 ) {
         a || b;
@@ -26,6 +27,6 @@ int main() {
     // return 1 + 1;
 }
 
-char fn(int a, int b) {
-    return 2;
+long add(int b, int b) {
+    1 + 1;
 }

@@ -5,6 +5,7 @@
 
 #include "array.h"
 #include "string.h"
+#include "util.h"
 
 String string_from_file(int fd) {
     off_t size = lseek(fd, 0, SEEK_END);
@@ -49,4 +50,8 @@ String string_from_cstr(char *s) {
     }
 
     return t;
+}
+
+int stringcmp(const String *s, const String *t) {
+    return strncmp(s->items, t->items, min(s->len, t->len));
 }

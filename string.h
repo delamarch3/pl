@@ -15,3 +15,4 @@ typedef struct {
 
 String string_from_file(int);
 String string_from_cstr(char *);
+int stringcmp(const String *s, const String *t);

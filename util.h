@@ -12,6 +12,10 @@
         ptr;                                                                                       \
     })
 
-#define TODO(msg)                                                                                  \
-    printf("TODO: " msg "\n");                                                                     \
+#define panic(...)                                                                                 \
+    printf(__VA_ARGS__);                                                                           \
     exit(1);
+
+#define todo(msg) panic("TODO: " msg "\n");
+
+#define min(x, y) x < y ? x : y
