@@ -60,6 +60,7 @@ typedef struct {
 } SymbolMap;
 
 // TODO: handle scope
+// TODO: function names are symbols too
 SymbolMap smap = {0};
 int locals = 0;
 
@@ -194,20 +195,26 @@ void gen_op(BinaryOp op) {
     case OP_SUB:
     case OP_MUL:
     case OP_DIV:
+    case OP_ASN:
+        // load <local>
+        // push <value>
+        // store <local> <-- What this should emit
+        todo("assign");
     case OP_LT:
     case OP_LE:
     case OP_GT:
     case OP_GE:
-    case OP_ASN:
     case OP_EQY:
     case OP_NEQY:
     case OP_LAND:
     case OP_LOR:
-        todo("gen op")
+        // If these are in an if/while statement, then we'll need labels
+        // Otherwise, I think it would be useful to have cmpeq, cmplt, etc which returns 0 or 1
+        todo("gen op");
     }
 }
 
-// Context - If the caller is defining a variable, then we'll need the type
+// Context(local, type) - If the caller is defining a variable, then we'll need the type
 // If the caller is assigning the variable, then context will be null, but we'll use the type of the
 // left variable (also must assert the left value can be assigned)
 // Otherwise, context will be null and operations will not be typed.
