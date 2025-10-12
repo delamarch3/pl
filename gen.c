@@ -207,6 +207,10 @@ void gen_op(BinaryOp op) {
     }
 }
 
+// Context - If the caller is defining a variable, then we'll need the type
+// If the caller is assigning the variable, then context will be null, but we'll use the type of the
+// left variable (also must assert the left value can be assigned)
+// Otherwise, context will be null and operations will not be typed.
 void gen_expr(const Expr *expr) {
     switch (expr->kind) {
     case E_VALUE:
