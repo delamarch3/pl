@@ -39,14 +39,14 @@ size_t hash(const String *s) {
     return hash;
 }
 
-Symbol *insert(SymbolMap *syms, Symbol item) {
-    if (syms->cap == 0) {
-        syms->cap = 128;
-        syms->items = calloc(syms->cap, sizeof(syms->items[0]));
+Symbol *insert(SymbolMap *smap, Symbol item) {
+    if (smap->cap == 0) {
+        smap->cap = 128;
+        smap->items = calloc(smap->cap, sizeof(smap->items[0]));
     }
 
     size_t i = hash(&item.key) % 128;
-    auto bucket = &syms->items[i];
+    auto bucket = &smap->items[i];
 
     for (size_t i = 0; i < bucket->len; i++) {
         if (stringcmp(&bucket->items[i].key, &item.key) == 0) {
@@ -60,13 +60,13 @@ Symbol *insert(SymbolMap *syms, Symbol item) {
     return nullptr;
 }
 
-Symbol *get(SymbolMap *syms, const String *key) {
-    if (syms->cap == 0) {
+Symbol *get(const SymbolMap *smap, const String *key) {
+    if (smap->cap == 0) {
         return nullptr;
     }
 
     size_t i = hash(key) % 128;
-    auto bucket = &syms->items[i];
+    auto bucket = &smap->items[i];
 
     for (size_t i = 0; i < bucket->len; i++) {
         if (stringcmp(&bucket->items[i].key, key) == 0) {
@@ -75,6 +75,40 @@ Symbol *get(SymbolMap *syms, const String *key) {
     }
 
     return nullptr;
+}
+
+void clear(SymbolMap *smap) {
+    for (size_t i = 0; i < smap->cap; i++) {
+        smap->items[i].len = 0;
+    }
+}
+
+typedef enum { Void, Byte, Int, Long } TypeKind;
+typedef struct {
+    TypeKind kind;
+    int slotsize;
+} Type;
+
+static Type get_type(const String *type) {
+    Type t = {0};
+
+    if (strcmp("int", type->items) == 0) {
+        t.kind = Int;
+        t.slotsize = 1;
+    } else if (strcmp("long", type->items) == 0) {
+        t.kind = Long;
+        t.slotsize = 2;
+    } else if (strcmp("void", type->items) == 0) {
+        t.kind = Void;
+        t.slotsize = 0;
+    } else if (strcmp("char", type->items) == 0) {
+        t.kind = Byte;
+        t.slotsize = 1;
+    } else {
+        todo("unhandled return type");
+    }
+
+    return t;
 }
 
 void gen_program(const Program *prg) {
@@ -88,18 +122,33 @@ void gen_program(const Program *prg) {
 
 void gen_function(const Function *func) {
     const Declaration *decl = &func->decl;
-    const Declarations *args = &func->args; // TODO: keep track of locals
+    const Declarations *args = &func->args;
     const Statements *stmts = &func->stmts;
 
+    clear(&smap);
+    locals = 0;
+    for (size_t i = 0; i < args->len; i++) {
+        Type type = get_type(&args->items[i].type);
+        int local = locals;
+        locals += type.slotsize;
+        Symbol sym = {.key = args->items[i].name, .local = local, .size = type.slotsize};
+        if (insert(&smap, sym) != nullptr) {
+            panic("function argument redefined: %.*s\n", (int)sym.key.len, sym.key.items);
+        }
+    }
+
     char *ret;
-    if (strcmp("int", decl->type.items) == 0) {
-        ret = "ret.w";
-    } else if (strcmp("long", decl->type.items) == 0) {
-        ret = "ret.d";
-    } else if (strcmp("void", decl->type.items) == 0) {
+    switch (get_type(&decl->type).kind) {
+    case Void:
         ret = "ret";
-    } else {
-        todo("return type");
+        break;
+    case Byte:
+    case Int:
+        ret = "ret.w";
+        break;
+    case Long:
+        ret = "ret.d";
+        break;
     }
 
     printf("%.*s:\n", (int)func->decl.name.len, func->decl.name.items);
@@ -118,8 +167,10 @@ void gen_statement(const Statement *stmt) {
     case S_DEFINITION:
         const DefinitionStatement *dstmt = &stmt->value.d;
 
-        // TODO: assuming int for now, but longs will take up two local slots
-        Symbol sym = {.key = dstmt->decl.name, .local = locals++, .size = 1};
+        Type type = get_type(&dstmt->decl.type);
+        int local = locals;
+        locals += type.slotsize;
+        Symbol sym = {.key = dstmt->decl.name, .local = local, .size = type.slotsize};
         if (insert(&smap, sym) != nullptr) {
             panic("variable redefined: %.*s\n", (int)sym.key.len, sym.key.items);
         }

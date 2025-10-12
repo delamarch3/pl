@@ -1,5 +1,5 @@
 int main() {
-    int a = 1 + 1;
+    long a = 1 + 1;
     // fn(1 + 1, s/6);
 
     // int b = (-134424 + 2) * 4;
@@ -27,6 +27,6 @@ int main() {
     // return 1 + 1;
 }
 
-long add(int b, int b) {
+long add(int a, int b) {
     1 + 1;
 }
