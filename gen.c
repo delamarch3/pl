@@ -7,10 +7,38 @@
 #include "string.h"
 #include "util.h"
 
+typedef enum { Void, Byte, Int, Long } TypeKind;
+typedef struct {
+    TypeKind kind;
+    int slotsize;
+} Type;
+
+static Type get_type(const String *type) {
+    Type t = {0};
+
+    if (strcmp("int", type->items) == 0) {
+        t.kind = Int;
+        t.slotsize = 1;
+    } else if (strcmp("long", type->items) == 0) {
+        t.kind = Long;
+        t.slotsize = 2;
+    } else if (strcmp("void", type->items) == 0) {
+        t.kind = Void;
+        t.slotsize = 0;
+    } else if (strcmp("char", type->items) == 0) {
+        t.kind = Byte;
+        t.slotsize = 1;
+    } else {
+        todo("unhandled return type");
+    }
+
+    return t;
+}
+
 typedef struct {
     String key;
     int local;
-    int size;
+    Type type;
 } Symbol;
 
 typedef struct {
@@ -83,34 +111,6 @@ void clear(SymbolMap *smap) {
     }
 }
 
-typedef enum { Void, Byte, Int, Long } TypeKind;
-typedef struct {
-    TypeKind kind;
-    int slotsize;
-} Type;
-
-static Type get_type(const String *type) {
-    Type t = {0};
-
-    if (strcmp("int", type->items) == 0) {
-        t.kind = Int;
-        t.slotsize = 1;
-    } else if (strcmp("long", type->items) == 0) {
-        t.kind = Long;
-        t.slotsize = 2;
-    } else if (strcmp("void", type->items) == 0) {
-        t.kind = Void;
-        t.slotsize = 0;
-    } else if (strcmp("char", type->items) == 0) {
-        t.kind = Byte;
-        t.slotsize = 1;
-    } else {
-        todo("unhandled return type");
-    }
-
-    return t;
-}
-
 void gen_program(const Program *prg) {
     printf(".entry main\n\n");
 
@@ -131,9 +131,9 @@ void gen_function(const Function *func) {
         Type type = get_type(&args->items[i].type);
         int local = locals;
         locals += type.slotsize;
-        Symbol sym = {.key = args->items[i].name, .local = local, .size = type.slotsize};
+        Symbol sym = {.key = args->items[i].name, .local = local, .type = type};
         if (insert(&smap, sym) != nullptr) {
-            panic("function argument redefined: %.*s\n", (int)sym.key.len, sym.key.items);
+            panic("function argument redefined: %.*s", (int)sym.key.len, sym.key.items);
         }
     }
 
@@ -170,9 +170,9 @@ void gen_statement(const Statement *stmt) {
         Type type = get_type(&dstmt->decl.type);
         int local = locals;
         locals += type.slotsize;
-        Symbol sym = {.key = dstmt->decl.name, .local = local, .size = type.slotsize};
+        Symbol sym = {.key = dstmt->decl.name, .local = local, .type = type};
         if (insert(&smap, sym) != nullptr) {
-            panic("variable redefined: %.*s\n", (int)sym.key.len, sym.key.items);
+            panic("variable redefined: %.*s", (int)sym.key.len, sym.key.items);
         }
 
         // SymbolInfo *test = get(&syms, &dstmt->decl.name);
@@ -232,7 +232,25 @@ void gen_expr(const Expr *expr) {
         gen_op(b->op);
         break;
     case E_IDENT:
-        todo("ident expr translation");
+        const IdentExpr *id = &expr->value.id;
+
+        Symbol *sym = get(&smap, &id->name);
+        if (sym == nullptr) {
+            panic("%.*s used before declaration", (int)id->name.len, id->name.items);
+        }
+
+        switch (sym->type.kind) {
+        case Void:
+            panic("cannot load value of type void");
+        case Byte:
+        case Int:
+            printf("load.w %d\n", sym->local);
+            break;
+        case Long:
+            printf("load.d %d\n", sym->local);
+            break;
+        }
+
         break;
     case E_CALL:
         todo("call expr translation");
