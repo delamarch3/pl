@@ -8,12 +8,12 @@
 #include "util.h"
 
 typedef enum { Void, Byte, Int, Long } TypeKind;
-typedef struct {
+struct Type {
     TypeKind kind;
     int slotsize;
     char *opext;
     char *retext;
-} Type;
+};
 
 static Type get_type(const String *type) {
     Type t = {0};
@@ -63,6 +63,11 @@ typedef struct {
 // TODO: function names are symbols too
 SymbolMap smap = {0};
 int locals = 0;
+
+struct Context {
+    Type fntype;
+    Type *type;
+};
 
 // djb2 - http://www.cse.yorku.ca/~oz/hash.html
 size_t hash(const String *s) {
@@ -133,7 +138,7 @@ void gen_function(const Function *func) {
     const Declarations *args = &func->args;
     const Statements *stmts = &func->stmts;
 
-    Type fntype = get_type(&decl->type);
+    Type type = get_type(&decl->type);
 
     clear(&smap);
     locals = 0;
@@ -149,12 +154,11 @@ void gen_function(const Function *func) {
 
     printf("%.*s:\n", (int)func->decl.name.len, func->decl.name.items);
     for (size_t i = 0; i < stmts->len; i++) {
-        gen_statement(&stmts->items[i]);
+        gen_statement(&type, &stmts->items[i]);
     }
-    // printf("ret%s\n", fntype.retext);
 }
 
-void gen_statement(const Statement *stmt) {
+void gen_statement(const Type *fntype, const Statement *stmt) {
     switch (stmt->kind) {
     case S_ASSIGN:
         const AssignStatement *asn = &stmt->value.a;
@@ -166,13 +170,13 @@ void gen_statement(const Statement *stmt) {
                   asn->name.items);
         }
 
-        gen_expr(&asn->expr);
+        gen_expr(&sym0->type, &asn->expr);
         printf("store%s %d\n", sym0->type.opext, sym0->local);
 
         break;
     case S_EXPR:
         const ExprStatement *estmt = &stmt->value.e;
-        gen_expr(&estmt->expr);
+        gen_expr(nullptr, &estmt->expr);
         break;
     case S_DEFINITION:
         const DefinitionStatement *dstmt = &stmt->value.d;
@@ -188,7 +192,7 @@ void gen_statement(const Statement *stmt) {
         // SymbolInfo *test = get(&syms, &dstmt->decl.name);
         // printf("got symbol: %.*s\n", (int)test->key.len, test->key.items);
 
-        gen_expr(&dstmt->expr);
+        gen_expr(&type, &dstmt->expr);
         printf("store%s %d\n", sym.type.opext, sym.local);
 
         break;
@@ -200,25 +204,37 @@ void gen_statement(const Statement *stmt) {
         break;
     case S_RETURN:
         const ReturnStatement *ret = &stmt->value.r;
-        if (ret->expr != nullptr) {
-            gen_expr(ret->expr);
+        if (fntype->kind == Void && ret->expr != nullptr) {
+            panic("unexpected return expression, function type is void");
+        }
+        if (fntype->kind != Void && ret->expr == nullptr) {
+            panic("missing return expression, function type is not void");
         }
 
-        // TODO: need context to use the correct extension
-        printf("ret%s\n", "");
+        if (ret->expr != nullptr) {
+            gen_expr(fntype, ret->expr);
+        }
+
+        printf("ret%s\n", fntype->retext);
 
         break;
     }
 }
 
-void gen_op(BinaryOp op) {
+void gen_op(const char *opext, BinaryOp op) {
     switch (op) {
     case OP_ADD:
-        printf("add\n");
+        printf("add%s\n", opext);
         break;
     case OP_SUB:
+        printf("sub%s\n", opext);
+        break;
     case OP_MUL:
+        printf("mul%s\n", opext);
+        break;
     case OP_DIV:
+        printf("div%s\n", opext);
+        break;
     case OP_LT:
     case OP_LE:
     case OP_GT:
@@ -233,16 +249,17 @@ void gen_op(BinaryOp op) {
     }
 }
 
-// Context(local, type) - If the caller is defining a variable, then we'll need the type
-// If the caller is assigning the variable, then context will be null, but we'll use the type of the
-// left variable (also must assert the left value can be assigned)
-// Otherwise, context will be null and operations will not be typed.
-void gen_expr(const Expr *expr) {
+void gen_expr(const Type *type, const Expr *expr) {
+    char *opext = "";
+    if (type != nullptr) {
+        opext = type->opext;
+    }
+
     switch (expr->kind) {
     case E_VALUE:
         switch (expr->value.v.kind) {
         case V_NUMBER:
-            printf("push %ld\n", expr->value.v.value.num);
+            printf("push%s %ld\n", opext, expr->value.v.value.num);
             break;
         case V_STRING:
         case V_CHAR:
@@ -252,9 +269,9 @@ void gen_expr(const Expr *expr) {
         break;
     case E_BINARY_OP:
         const BinaryOpExpr *b = &expr->value.b;
-        gen_expr(b->left);
-        gen_expr(b->right);
-        gen_op(b->op);
+        gen_expr(type, b->left);
+        gen_expr(type, b->right);
+        gen_op(opext, b->op);
         break;
     case E_IDENT:
         const IdentExpr *id = &expr->value.id;
@@ -266,6 +283,10 @@ void gen_expr(const Expr *expr) {
 
         if (sym->type.kind == Void) {
             panic("cannot load value of type void");
+        }
+
+        if (type != nullptr && type->kind != sym->type.kind) {
+            panic("type mismatch");
         }
 
         printf("load%s %d\n", sym->type.opext, sym->local);

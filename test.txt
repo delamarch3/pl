@@ -2,17 +2,17 @@ int main() {
     long a = 1 + 1;
     // fn(1 + 1, s/6);
 
-    // int b = (-134424 + 2) * 4;
-    int b = 2;
+    int b = (-134424 + 2) * 4;
     b = 1;
+
     // int c = 45 + 4 * 2 / 3;
     // int d = myvar - 4;
     // d;
     // bool f = a <= 4;
 
-    if ( 1 == 2 && 3 * 2 == 7 ) {
-        a || b;
-    }
+    // if ( 1 == 2 && 3 * 2 == 7 ) {
+    //     a || b;
+    // }
 
     // char d = "Hello, World!";
 
@@ -27,7 +27,7 @@ int main() {
 
     // return 1 + 1;
 
-    return;
+    return 1;
 }
 
 long add(int a, int b) {
