@@ -11,6 +11,8 @@ typedef enum { Void, Byte, Int, Long } TypeKind;
 typedef struct {
     TypeKind kind;
     int slotsize;
+    char *opext;
+    char *retext;
 } Type;
 
 static Type get_type(const String *type) {
@@ -19,15 +21,20 @@ static Type get_type(const String *type) {
     if (strcmp("int", type->items) == 0) {
         t.kind = Int;
         t.slotsize = 1;
+        t.retext = t.opext = ".w";
     } else if (strcmp("long", type->items) == 0) {
         t.kind = Long;
         t.slotsize = 2;
+        t.retext = t.opext = ".d";
     } else if (strcmp("void", type->items) == 0) {
         t.kind = Void;
         t.slotsize = 0;
+        t.retext = t.opext = "";
     } else if (strcmp("char", type->items) == 0) {
         t.kind = Byte;
         t.slotsize = 1;
+        t.opext = ".b";
+        t.retext = ".w";
     } else {
         todo("unhandled return type");
     }
@@ -125,6 +132,8 @@ void gen_function(const Function *func) {
     const Declarations *args = &func->args;
     const Statements *stmts = &func->stmts;
 
+    Type fntype = get_type(&decl->type);
+
     clear(&smap);
     locals = 0;
     for (size_t i = 0; i < args->len; i++) {
@@ -137,25 +146,11 @@ void gen_function(const Function *func) {
         }
     }
 
-    char *ret;
-    switch (get_type(&decl->type).kind) {
-    case Void:
-        ret = "ret";
-        break;
-    case Byte:
-    case Int:
-        ret = "ret.w";
-        break;
-    case Long:
-        ret = "ret.d";
-        break;
-    }
-
     printf("%.*s:\n", (int)func->decl.name.len, func->decl.name.items);
     for (size_t i = 0; i < stmts->len; i++) {
         gen_statement(&stmts->items[i]);
     }
-    printf("%s\n", ret);
+    printf("ret%s\n", fntype.retext);
 }
 
 void gen_statement(const Statement *stmt) {
@@ -239,17 +234,11 @@ void gen_expr(const Expr *expr) {
             panic("%.*s used before declaration", (int)id->name.len, id->name.items);
         }
 
-        switch (sym->type.kind) {
-        case Void:
+        if (sym->type.kind == Void) {
             panic("cannot load value of type void");
-        case Byte:
-        case Int:
-            printf("load.w %d\n", sym->local);
-            break;
-        case Long:
-            printf("load.d %d\n", sym->local);
-            break;
         }
+
+        printf("load%s %d\n", sym->type.opext, sym->local);
 
         break;
     case E_CALL:
