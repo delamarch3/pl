@@ -22,10 +22,9 @@
     }                                                                                              \
     exit(1);
 
-static char *op_values[] = {
-    [OP_ASN] = "=",   [OP_ADD] = "+",   [OP_SUB] = "-", [OP_MUL] = "*", [OP_DIV] = "/",
-    [OP_LT] = "<",    [OP_LE] = "<=",   [OP_GT] = ">",  [OP_GE] = ">=", [OP_EQY] = "==",
-    [OP_NEQY] = "!=", [OP_LAND] = "&&", [OP_LOR] = "||"};
+static char *op_values[] = {[OP_ADD] = "+",  [OP_SUB] = "-",   [OP_MUL] = "*",   [OP_DIV] = "/",
+                            [OP_LT] = "<",   [OP_LE] = "<=",   [OP_GT] = ">",    [OP_GE] = ">=",
+                            [OP_EQY] = "==", [OP_NEQY] = "!=", [OP_LAND] = "&&", [OP_LOR] = "||"};
 
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
@@ -142,6 +141,18 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
         def->expr = parse_expr(ts, 0);
 
         expect(ts, T_SEMICOLON);
+    } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
+        ts->position -= 2;
+
+        stmt.kind = S_ASSIGN;
+
+        AssignStatement *asn = &stmt.value.a;
+        Token id = expect(ts, T_IDENT);
+        asn->name = id.value;
+        expect(ts, T_EQUAL);
+        asn->expr = parse_expr(ts, 0);
+
+        expect(ts, T_SEMICOLON);
     } else if (checkkw(ts, "if")) {
         stmt.kind = S_IF;
 
@@ -214,8 +225,6 @@ Declaration parse_declaration(TokenIter *ts) {
 
 int next_prec(BinaryOp op) {
     switch (op) {
-    case OP_ASN:
-        return 1;
     case OP_LOR:
         return 2;
     case OP_LAND:
@@ -253,9 +262,6 @@ Expr parse_expr(TokenIter *ts, int prec) {
 
         BinaryOp op;
         switch (t->kind) {
-        case T_EQUAL:
-            op = OP_ASN;
-            break;
         case T_PLUS:
             op = OP_ADD;
             break;
@@ -444,6 +450,10 @@ void print_statement(const Statement *stmt, int tab) {
     case S_DEFINITION:
         DefinitionStatement def = stmt->value.d;
         print_expr(&def.expr);
+        break;
+    case S_ASSIGN:
+        // AssignStatement asn = stmt->value.a;
+        todo("print assign");
         break;
     case S_EXPR:
         ExprStatement e = stmt->value.e;

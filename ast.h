@@ -54,7 +54,6 @@ typedef enum {
     OP_LE,
     OP_GT,
     OP_GE,
-    OP_ASN,
     OP_EQY,
     OP_NEQY,
     OP_LAND,
@@ -101,7 +100,7 @@ struct Expr {
 
 /* Statements */
 
-typedef enum { S_DEFINITION, S_EXPR, S_IF, S_WHILE, S_RETURN } StatementKind;
+typedef enum { S_DEFINITION, S_ASSIGN, S_EXPR, S_IF, S_WHILE, S_RETURN } StatementKind;
 typedef struct Statement Statement;
 
 typedef struct {
@@ -114,6 +113,11 @@ typedef struct {
     Declaration decl;
     Expr expr;
 } DefinitionStatement;
+
+typedef struct {
+    String name;
+    Expr expr;
+} AssignStatement;
 
 typedef struct {
     Expr expr;
@@ -135,6 +139,7 @@ typedef struct {
 
 typedef union {
     DefinitionStatement d;
+    AssignStatement a;
     ExprStatement e;
     IfStatement i;
     WhileStatement w;

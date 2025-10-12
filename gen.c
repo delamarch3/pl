@@ -151,11 +151,25 @@ void gen_function(const Function *func) {
     for (size_t i = 0; i < stmts->len; i++) {
         gen_statement(&stmts->items[i]);
     }
-    printf("ret%s\n", fntype.retext);
+    // printf("ret%s\n", fntype.retext);
 }
 
 void gen_statement(const Statement *stmt) {
     switch (stmt->kind) {
+    case S_ASSIGN:
+        const AssignStatement *asn = &stmt->value.a;
+
+        // TODO: create functions for each case
+        Symbol *sym0 = get(&smap, &asn->name);
+        if (sym0 == nullptr) {
+            panic("attempt to assign undeclared variable: %.*s", (int)asn->name.len,
+                  asn->name.items);
+        }
+
+        gen_expr(&asn->expr);
+        printf("store%s %d\n", sym0->type.opext, sym0->local);
+
+        break;
     case S_EXPR:
         const ExprStatement *estmt = &stmt->value.e;
         gen_expr(&estmt->expr);
@@ -175,14 +189,24 @@ void gen_statement(const Statement *stmt) {
         // printf("got symbol: %.*s\n", (int)test->key.len, test->key.items);
 
         gen_expr(&dstmt->expr);
-        printf("store.w %d\n", sym.local);
+        printf("store%s %d\n", sym.type.opext, sym.local);
 
         break;
     case S_IF:
+        todo("gen if");
         break;
     case S_WHILE:
+        todo("gen while");
         break;
     case S_RETURN:
+        const ReturnStatement *ret = &stmt->value.r;
+        if (ret->expr != nullptr) {
+            gen_expr(ret->expr);
+        }
+
+        // TODO: need context to use the correct extension
+        printf("ret%s\n", "");
+
         break;
     }
 }
@@ -195,11 +219,6 @@ void gen_op(BinaryOp op) {
     case OP_SUB:
     case OP_MUL:
     case OP_DIV:
-    case OP_ASN:
-        // load <local>
-        // push <value>
-        // store <local> <-- What this should emit
-        todo("assign");
     case OP_LT:
     case OP_LE:
     case OP_GT:
@@ -253,7 +272,7 @@ void gen_expr(const Expr *expr) {
 
         break;
     case E_CALL:
-        todo("call expr translation");
+        todo("gen call expr");
         break;
     }
 }
