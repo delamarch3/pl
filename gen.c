@@ -20,6 +20,11 @@ struct Type {
     char *retext;
 };
 
+struct ExprContext {
+    const Type *type;
+    bool settype;
+};
+
 static Type get_type(const String *type) {
     Type t = {0};
 
@@ -165,6 +170,8 @@ void gen_function(const Function *func) {
 }
 
 void gen_statement(const Type *fntype, const Statement *stmt) {
+    ExprContext ctx = {0};
+
     switch (stmt->kind) {
     case S_ASSIGN:
         const AssignStatement *asn = &stmt->value.a;
@@ -176,13 +183,15 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
                   asn->name.items);
         }
 
-        gen_expr(&sym0->type, &asn->expr);
+        ctx.type = &sym0->type;
+        gen_expr(&ctx, &asn->expr);
         printf("store%s %d\n", sym0->type.opext, sym0->local);
 
         break;
     case S_EXPR:
         const ExprStatement *estmt = &stmt->value.e;
-        gen_expr(nullptr, &estmt->expr);
+        ctx.settype = true;
+        gen_expr(&ctx, &estmt->expr);
         break;
     case S_DEFINITION:
         const DefinitionStatement *dstmt = &stmt->value.d;
@@ -198,11 +207,15 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
         // SymbolInfo *test = get(&syms, &dstmt->decl.name);
         // printf("got symbol: %.*s\n", (int)test->key.len, test->key.items);
 
-        gen_expr(&type, &dstmt->expr);
+        ctx.type = &type;
+        gen_expr(&ctx, &dstmt->expr);
         printf("store%s %d\n", sym.type.opext, sym.local);
 
         break;
     case S_IF:
+        const IfStatement *ifstmt = &stmt->value.i;
+        ctx.settype = true;
+        gen_expr(&ctx, &ifstmt->expr);
         todo("gen if");
         break;
     case S_WHILE:
@@ -217,8 +230,9 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
             panic("missing return expression, function type is not void");
         }
 
+        ctx.type = fntype;
         if (ret->expr != nullptr) {
-            gen_expr(fntype, ret->expr);
+            gen_expr(&ctx, ret->expr);
         }
 
         printf("ret%s\n", fntype->retext);
@@ -269,7 +283,7 @@ void gen_op(const char *opext, BinaryOp op) {
         printf("push%s 0\n", opext);
         printf("jmp l%d\n", done);
         printf("l%d:\n", tru);
-        printf("push 1\n");
+        printf("push%s 1\n", opext);
         printf("l%d:\n", done);
         break;
     case OP_LOR:
@@ -282,16 +296,16 @@ void gen_op(const char *opext, BinaryOp op) {
         printf("push%s 0\n", opext);
         printf("jmp l%d\n", done);
         printf("l%d:\n", tru);
-        printf("push 1\n");
+        printf("push%s 1\n", opext);
         printf("l%d:\n", done);
         break;
     }
 }
 
-void gen_expr(const Type *type, const Expr *expr) {
+void gen_expr(ExprContext *ctx, const Expr *expr) {
     char *opext = "";
-    if (type != nullptr) {
-        opext = type->opext;
+    if (ctx->type != nullptr) {
+        opext = ctx->type->opext;
     }
 
     switch (expr->kind) {
@@ -308,8 +322,13 @@ void gen_expr(const Type *type, const Expr *expr) {
         break;
     case E_BINARY_OP:
         const BinaryOpExpr *b = &expr->value.b;
-        gen_expr(type, b->left);
-        gen_expr(type, b->right);
+        gen_expr(ctx, b->left);
+        gen_expr(ctx, b->right);
+
+        if (ctx->type != nullptr) {
+            opext = ctx->type->opext;
+        }
+
         gen_op(opext, b->op);
         break;
     case E_IDENT:
@@ -324,8 +343,13 @@ void gen_expr(const Type *type, const Expr *expr) {
             panic("cannot load value of type void");
         }
 
-        if (type != nullptr && type->kind != sym->type.kind) {
+        if (ctx->type != nullptr && ctx->type->kind != sym->type.kind) {
             panic("type mismatch");
+        }
+
+        if (ctx->settype) {
+            ctx->type = &sym->type;
+            ctx->settype = false;
         }
 
         printf("load%s %d\n", sym->type.opext, sym->local);
