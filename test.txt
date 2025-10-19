@@ -3,11 +3,23 @@ int main() {
     // fn(1 + 1, s/6);
 
     int b = (-134424 + 2) * 4;
-    b = 1;
+    b = 1 < 2;
+    int c = 1 < 2;
 
     // int c = 45 + 4 * 2 / 3;
     // int d = myvar - 4;
     // d;
+
+    // push a
+    // push 4
+    // cmp
+    // jmp.gt a1
+    // push 1
+    // jmp a2
+    // a1:
+    // push 0
+    // a2:
+    // store f
     // bool f = a <= 4;
 
     // if ( 1 == 2 && 3 * 2 == 7 ) {
@@ -16,6 +28,13 @@ int main() {
 
     // char d = "Hello, World!";
 
+    // push a
+    // push b
+    // cmp
+    // jmp.lt a1
+    // { statements }
+    // a1:
+    // ....
     // if a < b {
     //     a + 1;
     //     int c = 2;

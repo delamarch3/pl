@@ -12,7 +12,7 @@
 #include "token.h"
 
 int main() {
-    int fd = open("test.txt", O_RDONLY);
+    int fd = open("examples/ops", O_RDONLY);
     if (fd == -1) {
         fprintf(stderr, "open: %s", strerror(errno));
         exit(1);

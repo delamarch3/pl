@@ -7,6 +7,11 @@
 #include "string.h"
 #include "util.h"
 
+char *jmpexts[] = {
+    [OP_LT] = "lt", [OP_LE] = "le",  [OP_GT] = "gt",
+    [OP_GE] = "ge", [OP_EQY] = "eq", [OP_NEQY] = "ne",
+};
+
 typedef enum { Void, Byte, Int, Long } TypeKind;
 struct Type {
     TypeKind kind;
@@ -63,6 +68,7 @@ typedef struct {
 // TODO: function names are symbols too
 SymbolMap smap = {0};
 int locals = 0;
+int label = 0;
 
 struct Context {
     Type fntype;
@@ -241,11 +247,20 @@ void gen_op(const char *opext, BinaryOp op) {
     case OP_GE:
     case OP_EQY:
     case OP_NEQY:
+        char *jmpext = jmpexts[op];
+        int t = label++;
+        int s = label++;
+        printf("cmp%s\n", opext);
+        printf("jmp.%s l%d\n", jmpext, t);
+        printf("push 0\n");
+        printf("jmp l%d\n", s);
+        printf("l%d:\n", t);
+        printf("push 1\n");
+        printf("l%d:\n", s);
+        break;
     case OP_LAND:
     case OP_LOR:
-        // If these are in an if/while statement, then we'll need labels
-        // Otherwise, I think it would be useful to have cmpeq, cmplt, etc which returns 0 or 1
-        todo("gen op");
+        todo("gen logical op");
     }
 }
 
