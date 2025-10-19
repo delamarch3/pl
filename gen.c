@@ -228,6 +228,7 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
 }
 
 void gen_op(const char *opext, BinaryOp op) {
+    int tru, done;
     switch (op) {
     case OP_ADD:
         printf("add%s\n", opext);
@@ -248,19 +249,42 @@ void gen_op(const char *opext, BinaryOp op) {
     case OP_EQY:
     case OP_NEQY:
         char *jmpext = jmpexts[op];
-        int t = label++;
-        int s = label++;
+        tru = label++;
+        done = label++;
         printf("cmp%s\n", opext);
-        printf("jmp.%s l%d\n", jmpext, t);
-        printf("push 0\n");
-        printf("jmp l%d\n", s);
-        printf("l%d:\n", t);
-        printf("push 1\n");
-        printf("l%d:\n", s);
+        printf("jmp.%s l%d\n", jmpext, tru);
+        printf("push%s 0\n", opext);
+        printf("jmp l%d\n", done);
+        printf("l%d:\n", tru);
+        printf("push%s 1\n", opext);
+        printf("l%d:\n", done);
         break;
     case OP_LAND:
+        tru = label++;
+        done = label++;
+        printf("add\n");
+        printf("push%s 2\n", opext);
+        printf("cmp%s\n", opext);
+        printf("jmp.ge l%d\n", tru);
+        printf("push%s 0\n", opext);
+        printf("jmp l%d\n", done);
+        printf("l%d:\n", tru);
+        printf("push 1\n");
+        printf("l%d:\n", done);
+        break;
     case OP_LOR:
-        todo("gen logical op");
+        tru = label++;
+        done = label++;
+        printf("add\n");
+        printf("push%s 1\n", opext);
+        printf("cmp%s\n", opext);
+        printf("jmp.ge l%d\n", tru);
+        printf("push%s 0\n", opext);
+        printf("jmp l%d\n", done);
+        printf("l%d:\n", tru);
+        printf("push 1\n");
+        printf("l%d:\n", done);
+        break;
     }
 }
 
