@@ -2,11 +2,15 @@ void main() {
     int a = 2;
     int b = 2;
 
-    a != b;
+    if (a != b || a == 2) {
+        a = 1;
 
-    // if (a == b) {
-    //     a = 1;
-    // }
+        if (a == 1) {
+            a = 5;
+        }
+    }
+
+    a;
 
     return;
 }

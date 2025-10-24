@@ -8,7 +8,6 @@
 //
 // func -> decl ( decls ) { stmts }
 //
-// TODO: maybe remove def?
 // stmt -> def
 //         | expr
 //         | if expr { stmts }
@@ -125,7 +124,7 @@ typedef struct {
 
 typedef struct {
     Expr expr;
-    Statements statements;
+    Statements stmts;
 } IfStatement;
 
 typedef struct {

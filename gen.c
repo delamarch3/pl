@@ -172,11 +172,11 @@ void gen_function(const Function *func) {
 void gen_statement(const Type *fntype, const Statement *stmt) {
     ExprContext ctx = {0};
 
+    // TODO: create functions for each case
     switch (stmt->kind) {
     case S_ASSIGN:
         const AssignStatement *asn = &stmt->value.a;
 
-        // TODO: create functions for each case
         Symbol *sym0 = get(&smap, &asn->name);
         if (sym0 == nullptr) {
             panic("attempt to assign undeclared variable: %.*s", (int)asn->name.len,
@@ -216,7 +216,21 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
         const IfStatement *ifstmt = &stmt->value.i;
         ctx.settype = true;
         gen_expr(&ctx, &ifstmt->expr);
-        todo("gen if");
+
+        char *opext = "";
+        if (ctx.type != nullptr) {
+            opext = ctx.type->opext;
+        }
+
+        int done = label++;
+        printf("push%s 0\n", opext);
+        printf("cmp%s\n", opext);
+        printf("jmp.eq l%d\n", done);
+        for (size_t i = 0; i < ifstmt->stmts.len; i++) {
+            gen_statement(fntype, &ifstmt->stmts.items[i]);
+        }
+        printf("l%d:\n", done);
+
         break;
     case S_WHILE:
         todo("gen while");
@@ -300,6 +314,14 @@ void gen_op(const char *opext, BinaryOp op) {
         printf("l%d:\n", done);
         break;
     }
+}
+
+void gen_cmp_op() {
+    todo("gen_cmp_op");
+}
+
+void gen_logical_op() {
+    todo("gen_logical_op");
 }
 
 void gen_expr(ExprContext *ctx, const Expr *expr) {
