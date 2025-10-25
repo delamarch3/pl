@@ -7,11 +7,6 @@
 #include "string.h"
 #include "util.h"
 
-char *jmpexts[] = {
-    [OP_LT] = "lt", [OP_LE] = "le",  [OP_GT] = "gt",
-    [OP_GE] = "ge", [OP_EQY] = "eq", [OP_NEQY] = "ne",
-};
-
 typedef enum { Void, Byte, Int, Long } TypeKind;
 struct Type {
     TypeKind kind;
@@ -279,7 +274,6 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
 }
 
 void gen_op(const char *opext, BinaryOp op) {
-    int tru, done;
     switch (op) {
     case OP_ADD:
         printf("add%s\n", opext);
@@ -294,57 +288,56 @@ void gen_op(const char *opext, BinaryOp op) {
         printf("div%s\n", opext);
         break;
     case OP_LT:
+        gen_cmp_op(opext, "lt");
+        break;
     case OP_LE:
+        gen_cmp_op(opext, "le");
+        break;
     case OP_GT:
+        gen_cmp_op(opext, "gt");
+        break;
     case OP_GE:
+        gen_cmp_op(opext, "ge");
+        break;
     case OP_EQY:
+        gen_cmp_op(opext, "eq");
+        break;
     case OP_NEQY:
-        char *jmpext = jmpexts[op];
-        tru = label++;
-        done = label++;
-        printf("cmp%s\n", opext);
-        printf("jmp.%s l%d\n", jmpext, tru);
-        printf("push%s 0\n", opext);
-        printf("jmp l%d\n", done);
-        printf("l%d:\n", tru);
-        printf("push%s 1\n", opext);
-        printf("l%d:\n", done);
+        gen_cmp_op(opext, "ne");
         break;
     case OP_LAND:
-        tru = label++;
-        done = label++;
-        printf("add\n");
-        printf("push%s 2\n", opext);
-        printf("cmp%s\n", opext);
-        printf("jmp.ge l%d\n", tru);
-        printf("push%s 0\n", opext);
-        printf("jmp l%d\n", done);
-        printf("l%d:\n", tru);
-        printf("push%s 1\n", opext);
-        printf("l%d:\n", done);
+        gen_logical_op(opext, 2);
         break;
     case OP_LOR:
-        tru = label++;
-        done = label++;
-        printf("add\n");
-        printf("push%s 1\n", opext);
-        printf("cmp%s\n", opext);
-        printf("jmp.ge l%d\n", tru);
-        printf("push%s 0\n", opext);
-        printf("jmp l%d\n", done);
-        printf("l%d:\n", tru);
-        printf("push%s 1\n", opext);
-        printf("l%d:\n", done);
+        gen_logical_op(opext, 1);
         break;
     }
 }
 
-void gen_cmp_op() {
-    todo("gen_cmp_op");
+void gen_cmp_op(const char *opext, const char *jmpext) {
+    int iftrue = label++;
+    int cont = label++;
+    printf("cmp%s\n", opext);
+    printf("jmp.%s l%d\n", jmpext, iftrue);
+    printf("push%s 0\n", opext);
+    printf("jmp l%d\n", cont);
+    printf("l%d:\n", iftrue);
+    printf("push%s 1\n", opext);
+    printf("l%d:\n", cont);
 }
 
-void gen_logical_op() {
-    todo("gen_logical_op");
+void gen_logical_op(const char *opext, int ntrue) {
+    int iftrue = label++;
+    int cont = label++;
+    printf("add\n");
+    printf("push%s %d\n", opext, ntrue);
+    printf("cmp%s\n", opext);
+    printf("jmp.ge l%d\n", iftrue);
+    printf("push%s 0\n", opext);
+    printf("jmp l%d\n", cont);
+    printf("l%d:\n", iftrue);
+    printf("push%s 1\n", opext);
+    printf("l%d:\n", cont);
 }
 
 void gen_expr(ExprContext *ctx, const Expr *expr) {
