@@ -4,7 +4,7 @@
 
 #include "array.h"
 #include "gen.h"
-#include "string.h"
+#include "str.h"
 #include "util.h"
 
 typedef enum { Void, Byte, Char, Int, Long } TypeKind;

@@ -1,5 +1,6 @@
+# compile_flags.txt is needed in the project to support relative paths here
 CompileFlags:
-    Add: [-Wall, -Wextra, -pedantic, -std=c23, -Wno-char-subscripts, -Wno-gnu-statement-expression-from-macro-expansion]
+    Add: [-I./include, -Wall, -Wextra, -pedantic, -std=c23, -Wno-char-subscripts, -Wno-gnu-statement-expression-from-macro-expansion]
     Remove: [-Wempty-translation-unit]
 
 ---

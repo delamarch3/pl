@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #include "array.h"
-#include "string.h"
+#include "str.h"
 #include "util.h"
 
 String string_from_file(int fd) {

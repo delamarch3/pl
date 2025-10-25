@@ -8,7 +8,7 @@
 
 #include "gen.h"
 #include "parse.h"
-#include "string.h"
+#include "str.h"
 #include "token.h"
 
 int main() {

@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-#include "string.h"
+#include "str.h"
 
 typedef enum {
     T_IDENT = 1,

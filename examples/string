@@ -1,0 +1,6 @@
+void main() {
+    char *a = "Hello, World!";
+    byte b = '\n';
+
+    return;
+}
