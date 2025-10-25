@@ -73,8 +73,8 @@ typedef struct {
 
 typedef union {
     String str;
+    String ch;
     long num;
-    char ch;
 } Value;
 
 typedef enum { V_STRING, V_NUMBER, V_CHAR } ValueKind;

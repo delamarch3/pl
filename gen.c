@@ -7,7 +7,7 @@
 #include "string.h"
 #include "util.h"
 
-typedef enum { Void, Byte, Int, Long } TypeKind;
+typedef enum { Void, Byte, Char, Int, Long } TypeKind;
 struct TypeInfo {
     TypeKind kind;
     int slotsize;
@@ -42,6 +42,11 @@ static TypeInfo get_type(const Type *type) {
         t.slotsize = 0;
         t.retext = t.opext = "";
     } else if (strcmp("char", type->name.items) == 0) {
+        t.kind = Char;
+        t.slotsize = 1;
+        t.opext = ".w";
+        t.retext = ".w";
+    } else if (strcmp("byte", type->name.items) == 0) {
         t.kind = Byte;
         t.slotsize = 1;
         t.opext = ".b";
@@ -75,6 +80,7 @@ typedef struct {
 SymbolMap smap = {0};
 int locals = 0;
 int label = 0;
+int strings = 0;
 
 struct Context {
     TypeInfo fntype;
@@ -168,6 +174,8 @@ void gen_function(const Function *func) {
     for (size_t i = 0; i < stmts->len; i++) {
         gen_statement(&type, &stmts->items[i]);
     }
+
+    // TODO: check ret
 }
 
 void gen_statement(const TypeInfo *fntype, const Statement *stmt) {
@@ -359,10 +367,14 @@ void gen_expr(ExprContext *ctx, const Expr *expr) {
             printf("push%s %ld\n", opext, expr->value.v.value.num);
             break;
         case V_STRING:
-            todo("string value translation");
+            int s = strings++;
+            printf(".data s%d .string \"%.*s\"\n", s, (int)expr->value.v.value.str.len,
+                   expr->value.v.value.str.items);
+            printf("dataptr s%d\n", s);
             break;
         case V_CHAR:
-            todo("char value translation");
+            printf("push%s '%.*s'\n", opext, (int)expr->value.v.value.ch.len,
+                   expr->value.v.value.ch.items);
             break;
         }
         break;

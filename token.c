@@ -157,6 +157,33 @@ Tokens tokenise(const String *s) {
 
             tok.kind = T_STRING;
             tok.value = value;
+        } else if (*c == '\'') {
+            next(&chars);
+
+            String value = {0};
+
+            char *n = next(&chars);
+            if (n == nullptr) {
+                panic_unexpected_symbol(n);
+            }
+            append(&value, *n);
+
+            if (*n == '\\') {
+                n = next(&chars);
+                if (n == nullptr) {
+                    panic_unexpected_symbol(n);
+                }
+                append(&value, *n);
+            }
+
+            n = next(&chars);
+            if (n == nullptr || *n != '\'') {
+                fprintf(stderr, "expected closing quote: %c\n", *c);
+                exit(1);
+            }
+
+            tok.kind = T_CHAR;
+            tok.value = value;
         } else if (*c == '<') {
             next(&chars);
             tok.kind = T_LT;

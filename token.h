@@ -10,6 +10,7 @@ typedef enum {
 
     // Values
     T_STRING,
+    T_CHAR,
     T_NUMBER,
 
     // Symbols

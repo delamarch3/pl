@@ -339,6 +339,12 @@ Expr parse_prefix(TokenIter *ts) {
         value->kind = V_STRING;
         value->value.str = t->value;
         break;
+    case T_CHAR:
+        expr.kind = E_VALUE;
+        value = &expr.value.v;
+        value->kind = V_CHAR;
+        value->value.ch = t->value;
+        break;
     case T_LPAREN:
         expr = parse_expr(ts, 0);
         expect(ts, T_RPAREN);
@@ -410,7 +416,7 @@ void print_expr(const Expr *expr) {
             printf("\"%.*s\"", (int)v.value.str.len, v.value.str.items);
             break;
         case V_CHAR:
-            printf("%c", v.value.ch);
+            printf("'%.*s'", (int)v.value.ch.len, v.value.ch.items);
             break;
         }
 
