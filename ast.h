@@ -129,7 +129,7 @@ typedef struct {
 
 typedef struct {
     Expr expr;
-    Statements statements;
+    Statements stmts;
 } WhileStatement;
 
 typedef struct {

@@ -170,6 +170,8 @@ void gen_function(const Function *func) {
 }
 
 void gen_statement(const Type *fntype, const Statement *stmt) {
+    int done;
+    char *opext = "";
     ExprContext ctx = {0};
 
     // TODO: create functions for each case
@@ -233,7 +235,28 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
 
         break;
     case S_WHILE:
-        todo("gen while");
+        const WhileStatement *wstmt = &stmt->value.w;
+
+        int start = label++;
+        printf("l%d:\n", start);
+
+        ctx.settype = true;
+        gen_expr(&ctx, &wstmt->expr);
+        opext = "";
+        if (ctx.type != nullptr) {
+            opext = ctx.type->opext;
+        }
+
+        done = label++;
+        printf("push%s 0\n", opext);
+        printf("cmp%s\n", opext);
+        printf("jmp.eq l%d\n", done);
+        for (size_t i = 0; i < wstmt->stmts.len; i++) {
+            gen_statement(fntype, &wstmt->stmts.items[i]);
+        }
+        printf("jmp l%d\n", start);
+        printf("l%d:\n", done);
+
         break;
     case S_RETURN:
         const ReturnStatement *ret = &stmt->value.r;
