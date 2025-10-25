@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "array.h"
 #include "gen.h"
+#include "map.h"
 #include "str.h"
 #include "util.h"
 
@@ -87,55 +87,6 @@ struct Context {
     TypeInfo *type;
 };
 
-// djb2 - http://www.cse.yorku.ca/~oz/hash.html
-size_t hash(const String *s) {
-    unsigned long hash = 5381;
-
-    for (size_t i = 0; i < s->len; i++) {
-        hash = ((hash << 5) + hash) + s->items[i]; /* hash * 33 + c */
-    }
-
-    return hash;
-}
-
-Symbol *insert(SymbolMap *smap, Symbol item) {
-    if (smap->cap == 0) {
-        smap->cap = 128;
-        smap->items = calloc(smap->cap, sizeof(smap->items[0]));
-    }
-
-    size_t i = hash(&item.key) % 128;
-    auto bucket = &smap->items[i];
-
-    for (size_t i = 0; i < bucket->len; i++) {
-        if (stringcmp(&bucket->items[i].key, &item.key) == 0) {
-            bucket->items[i] = item;
-            return &bucket->items[i];
-        }
-    }
-
-    append(bucket, item);
-
-    return nullptr;
-}
-
-Symbol *get(const SymbolMap *smap, const String *key) {
-    if (smap->cap == 0) {
-        return nullptr;
-    }
-
-    size_t i = hash(key) % 128;
-    auto bucket = &smap->items[i];
-
-    for (size_t i = 0; i < bucket->len; i++) {
-        if (stringcmp(&bucket->items[i].key, key) == 0) {
-            return &bucket->items[i];
-        }
-    }
-
-    return nullptr;
-}
-
 void clear(SymbolMap *smap) {
     for (size_t i = 0; i < smap->cap; i++) {
         smap->items[i].len = 0;
@@ -165,9 +116,12 @@ void gen_function(const Function *func) {
         int local = locals;
         locals += type.slotsize;
         Symbol sym = {.key = args->items[i].name, .local = local, .type = type};
-        if (insert(&smap, sym) != nullptr) {
+
+        if (get(&smap, &sym.key) != nullptr) {
             panic("function argument redefined: %.*s", (int)sym.key.len, sym.key.items);
         }
+
+        insert(&smap, sym);
     }
 
     printf("%.*s:\n", (int)func->decl.name.len, func->decl.name.items);
@@ -211,9 +165,12 @@ void gen_statement(const TypeInfo *fntype, const Statement *stmt) {
         int local = locals;
         locals += type.slotsize;
         Symbol sym = {.key = dstmt->decl.name, .local = local, .type = type};
-        if (insert(&smap, sym) != nullptr) {
+
+        if (get(&smap, &sym.key) != nullptr) {
             panic("variable redefined: %.*s", (int)sym.key.len, sym.key.items);
         }
+
+        insert(&smap, sym);
 
         // SymbolInfo *test = get(&syms, &dstmt->decl.name);
         // printf("got symbol: %.*s\n", (int)test->key.len, test->key.items);
