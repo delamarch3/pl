@@ -130,7 +130,7 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
     Statement stmt = {0};
     *matched = true;
 
-    if (checkn(ts, T_IDENT, T_IDENT, 0)) {
+    if (checkn(ts, T_IDENT, T_IDENT, 0) || checkn(ts, T_IDENT, T_STAR, 0)) {
         ts->position -= 2;
 
         stmt.kind = S_DEFINITION;
@@ -158,13 +158,13 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
 
         IfStatement *ifs = &stmt.value.i;
         ifs->expr = parse_expr(ts, 0);
-        ifs->statements = parse_statements(ts);
+        ifs->stmts = parse_statements(ts);
     } else if (checkkw(ts, "while")) {
         stmt.kind = S_WHILE;
 
         WhileStatement *ws = &stmt.value.w;
         ws->expr = parse_expr(ts, 0);
-        ws->statements = parse_statements(ts);
+        ws->stmts = parse_statements(ts);
     } else if (checkkw(ts, "return")) {
         stmt.kind = S_RETURN;
 
@@ -211,14 +211,20 @@ Statements parse_statements(TokenIter *ts) {
     return stmts;
 }
 
-Declaration parse_declaration(TokenIter *ts) {
-    Token type = expect(ts, T_IDENT);
-    Token name = expect(ts, T_IDENT);
+Type parse_type(TokenIter *ts) {
+    Type type = {0};
 
-    Declaration decl = {
-        .type = type.value,
-        .name = name.value,
-    };
+    type.name = expect(ts, T_IDENT).value;
+    type.pointer = check(ts, T_STAR);
+
+    return type;
+}
+
+Declaration parse_declaration(TokenIter *ts) {
+    Declaration decl = {0};
+
+    decl.type = parse_type(ts);
+    decl.name = expect(ts, T_IDENT).value;
 
     return decl;
 }
@@ -464,14 +470,14 @@ void print_statement(const Statement *stmt, int tab) {
         printf("if ");
         print_expr(&ifs.expr);
         printf("\n");
-        print_statements(&ifs.statements, tab + 1);
+        print_statements(&ifs.stmts, tab + 1);
         break;
     case S_WHILE:
         WhileStatement ws = stmt->value.w;
         printf("while ");
         print_expr(&ws.expr);
         printf("\n");
-        print_statements(&ws.statements, tab + 1);
+        print_statements(&ws.stmts, tab + 1);
         break;
     case S_RETURN:
         ReturnStatement ret = stmt->value.r;

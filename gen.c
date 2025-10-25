@@ -8,34 +8,40 @@
 #include "util.h"
 
 typedef enum { Void, Byte, Int, Long } TypeKind;
-struct Type {
+struct TypeInfo {
     TypeKind kind;
     int slotsize;
     char *opext;
     char *retext;
+    bool pointer;
 };
 
 struct ExprContext {
-    const Type *type;
+    const TypeInfo *type;
     bool settype;
 };
 
-static Type get_type(const String *type) {
-    Type t = {0};
+static TypeInfo get_type(const Type *type) {
+    TypeInfo t = {0};
 
-    if (strcmp("int", type->items) == 0) {
-        t.kind = Int;
-        t.slotsize = 1;
-        t.retext = t.opext = ".w";
-    } else if (strcmp("long", type->items) == 0) {
+    if (type->pointer) {
         t.kind = Long;
         t.slotsize = 2;
         t.retext = t.opext = ".d";
-    } else if (strcmp("void", type->items) == 0) {
+        t.pointer = true;
+    } else if (strcmp("int", type->name.items) == 0) {
+        t.kind = Int;
+        t.slotsize = 1;
+        t.retext = t.opext = ".w";
+    } else if (strcmp("long", type->name.items) == 0) {
+        t.kind = Long;
+        t.slotsize = 2;
+        t.retext = t.opext = ".d";
+    } else if (strcmp("void", type->name.items) == 0) {
         t.kind = Void;
         t.slotsize = 0;
         t.retext = t.opext = "";
-    } else if (strcmp("char", type->items) == 0) {
+    } else if (strcmp("char", type->name.items) == 0) {
         t.kind = Byte;
         t.slotsize = 1;
         t.opext = ".b";
@@ -50,7 +56,7 @@ static Type get_type(const String *type) {
 typedef struct {
     String key;
     int local;
-    Type type;
+    TypeInfo type;
 } Symbol;
 
 typedef struct {
@@ -71,8 +77,8 @@ int locals = 0;
 int label = 0;
 
 struct Context {
-    Type fntype;
-    Type *type;
+    TypeInfo fntype;
+    TypeInfo *type;
 };
 
 // djb2 - http://www.cse.yorku.ca/~oz/hash.html
@@ -144,12 +150,12 @@ void gen_function(const Function *func) {
     const Declarations *args = &func->args;
     const Statements *stmts = &func->stmts;
 
-    Type type = get_type(&decl->type);
+    TypeInfo type = get_type(&decl->type);
 
     clear(&smap);
     locals = 0;
     for (size_t i = 0; i < args->len; i++) {
-        Type type = get_type(&args->items[i].type);
+        TypeInfo type = get_type(&args->items[i].type);
         int local = locals;
         locals += type.slotsize;
         Symbol sym = {.key = args->items[i].name, .local = local, .type = type};
@@ -164,7 +170,7 @@ void gen_function(const Function *func) {
     }
 }
 
-void gen_statement(const Type *fntype, const Statement *stmt) {
+void gen_statement(const TypeInfo *fntype, const Statement *stmt) {
     int done;
     char *opext = "";
     ExprContext ctx = {0};
@@ -193,7 +199,7 @@ void gen_statement(const Type *fntype, const Statement *stmt) {
     case S_DEFINITION:
         const DefinitionStatement *dstmt = &stmt->value.d;
 
-        Type type = get_type(&dstmt->decl.type);
+        TypeInfo type = get_type(&dstmt->decl.type);
         int local = locals;
         locals += type.slotsize;
         Symbol sym = {.key = dstmt->decl.name, .local = local, .type = type};
@@ -353,8 +359,10 @@ void gen_expr(ExprContext *ctx, const Expr *expr) {
             printf("push%s %ld\n", opext, expr->value.v.value.num);
             break;
         case V_STRING:
+            todo("string value translation");
+            break;
         case V_CHAR:
-            todo("string/char value translation");
+            todo("char value translation");
             break;
         }
         break;

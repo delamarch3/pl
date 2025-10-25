@@ -4,7 +4,9 @@
 
 // program -> functions
 //
-// decl -> ident, ident
+// type -> ident | ident *
+//
+// decl -> type, ident
 //
 // func -> decl ( decls ) { stmts }
 //
@@ -23,7 +25,12 @@
 //         | value
 
 typedef struct {
-    String type;
+    String name;
+    bool pointer;
+} Type;
+
+typedef struct {
+    Type type;
     String name;
 } Declaration;
 
