@@ -401,7 +401,16 @@ void gen_expr(ExprContext *ctx, const Expr *expr) {
 
         break;
     case E_CALL:
-        todo("gen call expr");
+        const CallExpr *call = &expr->value.c;
+
+        // TODO: verify arg types
+        for (size_t i = 0; i < call->args.len; i++) {
+            ExprContext ctx = {0};
+            ctx.settype = true;
+            gen_expr(&ctx, &call->args.items[i]);
+        }
+
+        printf("call %.*s\n", (int)call->name.len, call->name.items);
         break;
     }
 }
