@@ -1,11 +1,18 @@
+void other(int a, int *b) {
+
+}
+
 void main() {
     char *a = "Hello, World!";
     byte b = '\n';
 
-    char *buf = alloc(512);
-    copy(buf, a, 14);
-    print(buf);
-    free(buf);
+    // char *buf = alloc(512);
+    // copy(buf, a, 14);
+    // print(buf);
+    // free(buf);
+
+    int* c = 14;
+    other(12, c);
 
     // buf[15] = '\0';
 

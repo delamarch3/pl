@@ -2,38 +2,47 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "array.h"
 #include "gen.h"
 #include "map.h"
 #include "str.h"
 #include "util.h"
 
-static TypeInfo get_type(const Type *type) {
-    if (type->pointer) {
-        TypeInfo ptr_type = {
-            .kind = Long, .slotsize = 2, .retext = ".d", .opext = ".d", .pointer = true};
-        return ptr_type;
-    } else if (strcmp("int", type->name.items) == 0) {
-        return int_type;
-    } else if (strcmp("long", type->name.items) == 0) {
-        return long_type;
-    } else if (strcmp("void", type->name.items) == 0) {
-        return void_type;
-    } else if (strcmp("char", type->name.items) == 0) {
-        return char_type;
-    } else if (strcmp("byte", type->name.items) == 0) {
-        return byte_type;
+static TypeInfo get_type(const Type *asttype) {
+    TypeInfo type;
+
+    if (strcmp("int", asttype->name.items) == 0) {
+        type = int_type;
+    } else if (strcmp("long", asttype->name.items) == 0) {
+        type = long_type;
+    } else if (strcmp("void", asttype->name.items) == 0) {
+        type = void_type;
+    } else if (strcmp("char", asttype->name.items) == 0) {
+        type = char_type;
+    } else if (strcmp("byte", asttype->name.items) == 0) {
+        type = byte_type;
     } else {
         todo("unhandled return type");
     }
+
+    if (asttype->pointer) {
+        type.pointer = asttype->pointer;
+        type.slotsize = 2;
+        type.retext = ".d";
+        type.opext = ".d";
+    }
+
+    return type;
 }
 
 // TODO
 typedef enum { VariableSymbol, FunctionSymbol, RecordSymbol } SymbolKind;
 typedef struct {
     String key;
-    int local;
-    TypeInfo type;
     SymbolKind kind;
+    TypeInfo type;    // The return type if it's a function, otherwise variable type
+    int local;        // Set if it's a variable
+    TypeInfos fnargs; // Set if it's a function
 } Symbol;
 
 typedef struct {
@@ -72,11 +81,11 @@ void gen_function(const Function *func) {
 
     TypeInfo type = get_type(&decl->type);
 
+    TypeInfos fnargs = {0};
     Symbol fnsym = {.key = func->decl.name, .type = type, .kind = FunctionSymbol};
     if (get(&global_symbols, &fnsym.key) != nullptr) {
         panic("function redefined: %.*s", (int)fnsym.key.len, fnsym.key.items);
     }
-    insert(&global_symbols, fnsym);
 
     clear(&scoped_symbols);
     locals = 0;
@@ -92,7 +101,11 @@ void gen_function(const Function *func) {
         }
 
         insert(&scoped_symbols, sym);
+        append(&fnargs, type);
     }
+
+    fnsym.fnargs = fnargs;
+    insert(&global_symbols, fnsym);
 
     printf("%.*s:\n", (int)func->decl.name.len, func->decl.name.items);
     for (size_t i = 0; i < stmts->len; i++) {
@@ -307,25 +320,41 @@ void gen_expr(ExprContext *ctx, const Expr *expr) {
         gen_ident_expr(ctx, &expr->value.id);
         break;
     case E_CALL:
-        gen_call_expr(&expr->value.c);
+        gen_call_expr(ctx, &expr->value.c);
         break;
     }
 }
 
-void gen_value_expr(const ExprContext *ctx, const ValueExpr *expr) {
+void gen_value_expr(ExprContext *ctx, const ValueExpr *expr) {
     char *opext = ctx->type != nullptr ? ctx->type->opext : "";
 
     switch (expr->kind) {
     case V_NUMBER:
         printf("push%s %ld\n", opext, expr->value.num);
+
+        if (ctx->settype) {
+            ctx->type = &int_type;
+        }
+
         break;
     case V_STRING:
         int s = strings++;
         printf(".data s%d .string \"%.*s\"\n", s, (int)expr->value.str.len, expr->value.str.items);
         printf("dataptr s%d\n", s);
+
+        if (ctx->settype) {
+            ctx->type = &char_ptr_type;
+            ctx->settype = false;
+        }
+
         break;
     case V_CHAR:
         printf("push%s '%.*s'\n", opext, (int)expr->value.ch.len, expr->value.ch.items);
+
+        if (ctx->settype) {
+            ctx->type = &char_type;
+        }
+
         break;
     }
 }
@@ -361,12 +390,32 @@ void gen_ident_expr(ExprContext *ctx, const IdentExpr *expr) {
     printf("load%s %d\n", sym->type.opext, sym->local);
 }
 
-void gen_call_expr(const CallExpr *expr) {
-    // TODO: verify arg types - need to keep track of functions
+void gen_call_expr(ExprContext *ctx, const CallExpr *expr) {
+    Symbol *fnsym = get(&global_symbols, &expr->name);
+
+    if (ctx->settype) {
+        ctx->type = &fnsym->type;
+        ctx->settype = false;
+    }
+
+    if (fnsym == nullptr) {
+        panic("call to undefined function: %.*s\n", (int)expr->name.len, expr->name.items);
+    }
+
+    if (fnsym->fnargs.len != expr->args.len) {
+        panic("call %.*s: argument count mismatch, have %ld, want %ld\n", (int)expr->name.len,
+              expr->name.items, expr->args.len, fnsym->fnargs.len);
+    }
+
     for (size_t i = 0; i < expr->args.len; i++) {
         ExprContext ctx = {0};
         ctx.settype = true;
         gen_expr(&ctx, &expr->args.items[i]);
+
+        TypeInfo argtype = fnsym->fnargs.items[i];
+        if (argtype.kind != ctx.type->kind || (argtype.pointer ^ ctx.type->pointer) == true) {
+            panic("call %.*s: argument type mismatch\n", (int)expr->name.len, expr->name.items);
+        }
     }
 
     printf("call %.*s\n", (int)expr->name.len, expr->name.items);
