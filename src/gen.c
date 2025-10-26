@@ -51,7 +51,7 @@ typedef struct {
 // TODO: function names are symbols too
 SymbolMap smap = {0};
 int locals = 0;
-int label = 0;
+int labels = 0;
 int strings = 0;
 
 void gen_program(const Program *prg) {
@@ -166,7 +166,7 @@ void gen_if_statement(const TypeInfo *fntype, const IfStatement *stmt) {
         opext = ctx.type->opext;
     }
 
-    int done = label++;
+    int done = labels++;
     printf("push%s 0\n", opext);
     printf("cmp%s\n", opext);
     printf("jmp.eq l%d\n", done);
@@ -180,7 +180,7 @@ void gen_if_statement(const TypeInfo *fntype, const IfStatement *stmt) {
 void gen_while_statement(const TypeInfo *fntype, const WhileStatement *stmt) {
     ExprContext ctx = {0};
 
-    int start = label++;
+    int start = labels++;
     printf("l%d:\n", start);
 
     ctx.settype = true;
@@ -190,7 +190,7 @@ void gen_while_statement(const TypeInfo *fntype, const WhileStatement *stmt) {
         opext = ctx.type->opext;
     }
 
-    int done = label++;
+    int done = labels++;
     printf("push%s 0\n", opext);
     printf("cmp%s\n", opext);
     printf("jmp.eq l%d\n", done);
@@ -261,8 +261,8 @@ void gen_op(const char *opext, BinaryOp op) {
 }
 
 void gen_cmp_op(const char *opext, const char *jmpext) {
-    int iftrue = label++;
-    int cont = label++;
+    int iftrue = labels++;
+    int cont = labels++;
     printf("cmp%s\n", opext);
     printf("jmp.%s l%d\n", jmpext, iftrue);
     printf("push%s 0\n", opext);
@@ -273,8 +273,8 @@ void gen_cmp_op(const char *opext, const char *jmpext) {
 }
 
 void gen_logical_op(const char *opext, int ntrue) {
-    int iftrue = label++;
-    int cont = label++;
+    int iftrue = labels++;
+    int cont = labels++;
     printf("add\n");
     printf("push%s %d\n", opext, ntrue);
     printf("cmp%s\n", opext);

@@ -34,3 +34,9 @@
         }                                                                                          \
         value;                                                                                     \
     })
+
+#define arrayfree(array)                                                                           \
+    if ((array)->items != nullptr) {                                                               \
+        free((array)->items);                                                                      \
+        (array)->items = nullptr;                                                                  \
+    }\

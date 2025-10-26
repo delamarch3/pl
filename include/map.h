@@ -63,4 +63,13 @@ size_t hash(const String *s) {
 #define clear(map)                                                                                 \
     for (size_t i = 0; i < (map)->cap; i++) {                                                      \
         (map)->items[i].len = 0;                                                                   \
+    }
+
+#define mapfree(map)                                                                               \
+    if ((map)->cap != 0) {                                                                         \
+        for (size_t i = 0; i < (map)->cap; i++) {                                                  \
+            arrayfree((map)->items[i]);                                                            \
+        }                                                                                          \
+        free((map)->items));                                                                       \
+        (map)->items = nullptr;                                                                    \
     }\
