@@ -28,7 +28,7 @@ TypeInfo int_type = {.kind = Int, .slotsize = 1, .retext = ".w", .opext = ".w"};
 TypeInfo void_type = {.kind = Void, .slotsize = 0, .retext = "", .opext = ""};
 TypeInfo char_type = {.kind = Char, .slotsize = 1, .retext = ".w", .opext = ".w"};
 TypeInfo char_ptr_type = {
-    .kind = Char, .slotsize = 1, .retext = ".w", .opext = ".w", .pointer = true};
+    .kind = Char, .slotsize = 2, .retext = ".d", .opext = ".d", .pointer = true};
 TypeInfo byte_type = {.kind = Byte, .slotsize = 1, .retext = ".w", .opext = ".b"};
 
 void gen_program(const Program *);
