@@ -47,9 +47,11 @@ typedef struct {
     Symbols *items;
 } SymbolMap;
 
-// TODO: handle scope
-// TODO: function names are symbols too
-SymbolMap smap = {0};
+// Functions and record definitions stored here
+SymbolMap global_symbols = {0};
+// Variables are stored here
+SymbolMap scoped_symbols = {0};
+
 int locals = 0;
 int labels = 0;
 int strings = 0;
@@ -70,19 +72,26 @@ void gen_function(const Function *func) {
 
     TypeInfo type = get_type(&decl->type);
 
-    clear(&smap);
+    Symbol fnsym = {.key = func->decl.name, .type = type, .kind = FunctionSymbol};
+    if (get(&global_symbols, &fnsym.key) != nullptr) {
+        panic("function redefined: %.*s", (int)fnsym.key.len, fnsym.key.items);
+    }
+    insert(&global_symbols, fnsym);
+
+    clear(&scoped_symbols);
     locals = 0;
     for (size_t i = 0; i < args->len; i++) {
         TypeInfo type = get_type(&args->items[i].type);
         int local = locals;
         locals += type.slotsize;
-        Symbol sym = {.key = args->items[i].name, .local = local, .type = type};
 
-        if (get(&smap, &sym.key) != nullptr) {
+        Symbol sym = {
+            .key = args->items[i].name, .local = local, .type = type, .kind = VariableSymbol};
+        if (get(&scoped_symbols, &sym.key) != nullptr) {
             panic("function argument redefined: %.*s", (int)sym.key.len, sym.key.items);
         }
 
-        insert(&smap, sym);
+        insert(&scoped_symbols, sym);
     }
 
     printf("%.*s:\n", (int)func->decl.name.len, func->decl.name.items);
@@ -119,7 +128,7 @@ void gen_statement(const TypeInfo *fntype, const Statement *stmt) {
 void gen_assign_statement(const AssignStatement *stmt) {
     ExprContext ctx = {0};
 
-    Symbol *sym0 = get(&smap, &stmt->name);
+    Symbol *sym0 = get(&scoped_symbols, &stmt->name);
     if (sym0 == nullptr) {
         panic("attempt to assign undeclared variable: %.*s", (int)stmt->name.len, stmt->name.items);
     }
@@ -142,13 +151,13 @@ void gen_definition_statement(const DefinitionStatement *stmt) {
     TypeInfo type = get_type(&stmt->decl.type);
     int local = locals;
     locals += type.slotsize;
-    Symbol sym = {.key = stmt->decl.name, .local = local, .type = type};
+    Symbol sym = {.key = stmt->decl.name, .local = local, .type = type, .kind = VariableSymbol};
 
-    if (get(&smap, &sym.key) != nullptr) {
+    if (get(&scoped_symbols, &sym.key) != nullptr) {
         panic("variable redefined: %.*s", (int)sym.key.len, sym.key.items);
     }
 
-    insert(&smap, sym);
+    insert(&scoped_symbols, sym);
 
     ctx.type = &type;
     gen_expr(&ctx, &stmt->expr);
@@ -331,7 +340,7 @@ void gen_binary_op_expr(ExprContext *ctx, const BinaryOpExpr *expr) {
 }
 
 void gen_ident_expr(ExprContext *ctx, const IdentExpr *expr) {
-    Symbol *sym = get(&smap, &expr->name);
+    Symbol *sym = get(&scoped_symbols, &expr->name);
     if (sym == nullptr) {
         panic("%.*s used before declaration", (int)expr->name.len, expr->name.items);
     }
