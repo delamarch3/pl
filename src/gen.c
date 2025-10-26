@@ -7,61 +7,33 @@
 #include "str.h"
 #include "util.h"
 
-typedef enum { Void, Byte, Char, Int, Long } TypeKind;
-struct TypeInfo {
-    TypeKind kind;
-    int slotsize;
-    char *opext;
-    char *retext;
-    bool pointer;
-};
-
-struct ExprContext {
-    const TypeInfo *type;
-    bool settype;
-};
-
 static TypeInfo get_type(const Type *type) {
-    TypeInfo t = {0};
-
     if (type->pointer) {
-        t.kind = Long;
-        t.slotsize = 2;
-        t.retext = t.opext = ".d";
-        t.pointer = true;
+        TypeInfo ptr_type = {
+            .kind = Long, .slotsize = 2, .retext = ".d", .opext = ".d", .pointer = true};
+        return ptr_type;
     } else if (strcmp("int", type->name.items) == 0) {
-        t.kind = Int;
-        t.slotsize = 1;
-        t.retext = t.opext = ".w";
+        return int_type;
     } else if (strcmp("long", type->name.items) == 0) {
-        t.kind = Long;
-        t.slotsize = 2;
-        t.retext = t.opext = ".d";
+        return long_type;
     } else if (strcmp("void", type->name.items) == 0) {
-        t.kind = Void;
-        t.slotsize = 0;
-        t.retext = t.opext = "";
+        return void_type;
     } else if (strcmp("char", type->name.items) == 0) {
-        t.kind = Char;
-        t.slotsize = 1;
-        t.opext = ".w";
-        t.retext = ".w";
+        return char_type;
     } else if (strcmp("byte", type->name.items) == 0) {
-        t.kind = Byte;
-        t.slotsize = 1;
-        t.opext = ".b";
-        t.retext = ".w";
+        return byte_type;
     } else {
         todo("unhandled return type");
     }
-
-    return t;
 }
 
+// TODO
+typedef enum { VariableSymbol, FunctionSymbol, RecordSymbol } SymbolKind;
 typedef struct {
     String key;
     int local;
     TypeInfo type;
+    SymbolKind kind;
 } Symbol;
 
 typedef struct {
@@ -81,17 +53,6 @@ SymbolMap smap = {0};
 int locals = 0;
 int label = 0;
 int strings = 0;
-
-struct Context {
-    TypeInfo fntype;
-    TypeInfo *type;
-};
-
-void clear(SymbolMap *smap) {
-    for (size_t i = 0; i < smap->cap; i++) {
-        smap->items[i].len = 0;
-    }
-}
 
 void gen_program(const Program *prg) {
     printf(".entry main\n\n");
@@ -133,115 +94,129 @@ void gen_function(const Function *func) {
 }
 
 void gen_statement(const TypeInfo *fntype, const Statement *stmt) {
-    int done;
-    char *opext = "";
-    ExprContext ctx = {0};
-
-    // TODO: create functions for each case
     switch (stmt->kind) {
     case S_ASSIGN:
-        const AssignStatement *asn = &stmt->value.a;
-
-        Symbol *sym0 = get(&smap, &asn->name);
-        if (sym0 == nullptr) {
-            panic("attempt to assign undeclared variable: %.*s", (int)asn->name.len,
-                  asn->name.items);
-        }
-
-        ctx.type = &sym0->type;
-        gen_expr(&ctx, &asn->expr);
-        printf("store%s %d\n", sym0->type.opext, sym0->local);
-
+        gen_assign_statement(&stmt->value.a);
         break;
     case S_EXPR:
-        const ExprStatement *estmt = &stmt->value.e;
-        ctx.settype = true;
-        gen_expr(&ctx, &estmt->expr);
+        gen_expr_statement(&stmt->value.e);
         break;
     case S_DEFINITION:
-        const DefinitionStatement *dstmt = &stmt->value.d;
-
-        TypeInfo type = get_type(&dstmt->decl.type);
-        int local = locals;
-        locals += type.slotsize;
-        Symbol sym = {.key = dstmt->decl.name, .local = local, .type = type};
-
-        if (get(&smap, &sym.key) != nullptr) {
-            panic("variable redefined: %.*s", (int)sym.key.len, sym.key.items);
-        }
-
-        insert(&smap, sym);
-
-        // SymbolInfo *test = get(&syms, &dstmt->decl.name);
-        // printf("got symbol: %.*s\n", (int)test->key.len, test->key.items);
-
-        ctx.type = &type;
-        gen_expr(&ctx, &dstmt->expr);
-        printf("store%s %d\n", sym.type.opext, sym.local);
-
+        gen_definition_statement(&stmt->value.d);
         break;
     case S_IF:
-        const IfStatement *ifstmt = &stmt->value.i;
-        ctx.settype = true;
-        gen_expr(&ctx, &ifstmt->expr);
-
-        char *opext = "";
-        if (ctx.type != nullptr) {
-            opext = ctx.type->opext;
-        }
-
-        int done = label++;
-        printf("push%s 0\n", opext);
-        printf("cmp%s\n", opext);
-        printf("jmp.eq l%d\n", done);
-        for (size_t i = 0; i < ifstmt->stmts.len; i++) {
-            gen_statement(fntype, &ifstmt->stmts.items[i]);
-        }
-        printf("l%d:\n", done);
-
+        gen_if_statement(fntype, &stmt->value.i);
         break;
     case S_WHILE:
-        const WhileStatement *wstmt = &stmt->value.w;
-
-        int start = label++;
-        printf("l%d:\n", start);
-
-        ctx.settype = true;
-        gen_expr(&ctx, &wstmt->expr);
-        opext = "";
-        if (ctx.type != nullptr) {
-            opext = ctx.type->opext;
-        }
-
-        done = label++;
-        printf("push%s 0\n", opext);
-        printf("cmp%s\n", opext);
-        printf("jmp.eq l%d\n", done);
-        for (size_t i = 0; i < wstmt->stmts.len; i++) {
-            gen_statement(fntype, &wstmt->stmts.items[i]);
-        }
-        printf("jmp l%d\n", start);
-        printf("l%d:\n", done);
-
+        gen_while_statement(fntype, &stmt->value.w);
         break;
     case S_RETURN:
-        const ReturnStatement *ret = &stmt->value.r;
-        if (fntype->kind == Void && ret->expr != nullptr) {
-            panic("unexpected return expression, function type is void");
-        }
-        if (fntype->kind != Void && ret->expr == nullptr) {
-            panic("missing return expression, function type is not void");
-        }
-
-        ctx.type = fntype;
-        if (ret->expr != nullptr) {
-            gen_expr(&ctx, ret->expr);
-        }
-
-        printf("ret%s\n", fntype->retext);
-
+        gen_return_statement(fntype, &stmt->value.r);
         break;
     }
+}
+
+void gen_assign_statement(const AssignStatement *stmt) {
+    ExprContext ctx = {0};
+
+    Symbol *sym0 = get(&smap, &stmt->name);
+    if (sym0 == nullptr) {
+        panic("attempt to assign undeclared variable: %.*s", (int)stmt->name.len, stmt->name.items);
+    }
+
+    ctx.type = &sym0->type;
+    gen_expr(&ctx, &stmt->expr);
+    printf("store%s %d\n", sym0->type.opext, sym0->local);
+}
+
+void gen_expr_statement(const ExprStatement *estmt) {
+    ExprContext ctx = {0};
+
+    ctx.settype = true;
+    gen_expr(&ctx, &estmt->expr);
+}
+
+void gen_definition_statement(const DefinitionStatement *stmt) {
+    ExprContext ctx = {0};
+
+    TypeInfo type = get_type(&stmt->decl.type);
+    int local = locals;
+    locals += type.slotsize;
+    Symbol sym = {.key = stmt->decl.name, .local = local, .type = type};
+
+    if (get(&smap, &sym.key) != nullptr) {
+        panic("variable redefined: %.*s", (int)sym.key.len, sym.key.items);
+    }
+
+    insert(&smap, sym);
+
+    ctx.type = &type;
+    gen_expr(&ctx, &stmt->expr);
+    printf("store%s %d\n", sym.type.opext, sym.local);
+}
+
+void gen_if_statement(const TypeInfo *fntype, const IfStatement *stmt) {
+    ExprContext ctx = {0};
+
+    ctx.settype = true;
+    gen_expr(&ctx, &stmt->expr);
+
+    char *opext = "";
+    if (ctx.type != nullptr) {
+        opext = ctx.type->opext;
+    }
+
+    int done = label++;
+    printf("push%s 0\n", opext);
+    printf("cmp%s\n", opext);
+    printf("jmp.eq l%d\n", done);
+    for (size_t i = 0; i < stmt->stmts.len; i++) {
+        gen_statement(fntype, &stmt->stmts.items[i]);
+    }
+
+    printf("l%d:\n", done);
+}
+
+void gen_while_statement(const TypeInfo *fntype, const WhileStatement *stmt) {
+    ExprContext ctx = {0};
+
+    int start = label++;
+    printf("l%d:\n", start);
+
+    ctx.settype = true;
+    gen_expr(&ctx, &stmt->expr);
+    char *opext = "";
+    if (ctx.type != nullptr) {
+        opext = ctx.type->opext;
+    }
+
+    int done = label++;
+    printf("push%s 0\n", opext);
+    printf("cmp%s\n", opext);
+    printf("jmp.eq l%d\n", done);
+    for (size_t i = 0; i < stmt->stmts.len; i++) {
+        gen_statement(fntype, &stmt->stmts.items[i]);
+    }
+    printf("jmp l%d\n", start);
+    printf("l%d:\n", done);
+}
+
+void gen_return_statement(const TypeInfo *fntype, const ReturnStatement *stmt) {
+    ExprContext ctx = {0};
+
+    if (fntype->kind == Void && stmt->expr != nullptr) {
+        panic("unexpected return expression, function type is void");
+    }
+    if (fntype->kind != Void && stmt->expr == nullptr) {
+        panic("missing return expression, function type is not void");
+    }
+
+    ctx.type = fntype;
+    if (stmt->expr != nullptr) {
+        gen_expr(&ctx, stmt->expr);
+    }
+
+    printf("ret%s\n", fntype->retext);
 }
 
 void gen_op(const char *opext, BinaryOp op) {
@@ -312,75 +287,78 @@ void gen_logical_op(const char *opext, int ntrue) {
 }
 
 void gen_expr(ExprContext *ctx, const Expr *expr) {
-    char *opext = "";
-    if (ctx->type != nullptr) {
-        opext = ctx->type->opext;
-    }
-
     switch (expr->kind) {
     case E_VALUE:
-        switch (expr->value.v.kind) {
-        case V_NUMBER:
-            printf("push%s %ld\n", opext, expr->value.v.value.num);
-            break;
-        case V_STRING:
-            int s = strings++;
-            printf(".data s%d .string \"%.*s\"\n", s, (int)expr->value.v.value.str.len,
-                   expr->value.v.value.str.items);
-            printf("dataptr s%d\n", s);
-            break;
-        case V_CHAR:
-            printf("push%s '%.*s'\n", opext, (int)expr->value.v.value.ch.len,
-                   expr->value.v.value.ch.items);
-            break;
-        }
+        gen_value_expr(ctx, &expr->value.v);
         break;
     case E_BINARY_OP:
-        const BinaryOpExpr *b = &expr->value.b;
-        gen_expr(ctx, b->left);
-        gen_expr(ctx, b->right);
-
-        if (ctx->type != nullptr) {
-            opext = ctx->type->opext;
-        }
-
-        gen_op(opext, b->op);
+        gen_binary_op_expr(ctx, &expr->value.b);
         break;
     case E_IDENT:
-        const IdentExpr *id = &expr->value.id;
-
-        Symbol *sym = get(&smap, &id->name);
-        if (sym == nullptr) {
-            panic("%.*s used before declaration", (int)id->name.len, id->name.items);
-        }
-
-        if (sym->type.kind == Void) {
-            panic("cannot load value of type void");
-        }
-
-        if (ctx->type != nullptr && ctx->type->kind != sym->type.kind) {
-            panic("type mismatch");
-        }
-
-        if (ctx->settype) {
-            ctx->type = &sym->type;
-            ctx->settype = false;
-        }
-
-        printf("load%s %d\n", sym->type.opext, sym->local);
-
+        gen_ident_expr(ctx, &expr->value.id);
         break;
     case E_CALL:
-        const CallExpr *call = &expr->value.c;
-
-        // TODO: verify arg types
-        for (size_t i = 0; i < call->args.len; i++) {
-            ExprContext ctx = {0};
-            ctx.settype = true;
-            gen_expr(&ctx, &call->args.items[i]);
-        }
-
-        printf("call %.*s\n", (int)call->name.len, call->name.items);
+        gen_call_expr(&expr->value.c);
         break;
     }
+}
+
+void gen_value_expr(const ExprContext *ctx, const ValueExpr *expr) {
+    char *opext = ctx->type != nullptr ? ctx->type->opext : "";
+
+    switch (expr->kind) {
+    case V_NUMBER:
+        printf("push%s %ld\n", opext, expr->value.num);
+        break;
+    case V_STRING:
+        int s = strings++;
+        printf(".data s%d .string \"%.*s\"\n", s, (int)expr->value.str.len, expr->value.str.items);
+        printf("dataptr s%d\n", s);
+        break;
+    case V_CHAR:
+        printf("push%s '%.*s'\n", opext, (int)expr->value.ch.len, expr->value.ch.items);
+        break;
+    }
+}
+
+void gen_binary_op_expr(ExprContext *ctx, const BinaryOpExpr *expr) {
+    gen_expr(ctx, expr->left);
+    gen_expr(ctx, expr->right);
+
+    char *opext = ctx->type != nullptr ? ctx->type->opext : "";
+
+    gen_op(opext, expr->op);
+}
+
+void gen_ident_expr(ExprContext *ctx, const IdentExpr *expr) {
+    Symbol *sym = get(&smap, &expr->name);
+    if (sym == nullptr) {
+        panic("%.*s used before declaration", (int)expr->name.len, expr->name.items);
+    }
+
+    if (sym->type.kind == Void) {
+        panic("cannot load value of type void");
+    }
+
+    if (ctx->type != nullptr && ctx->type->kind != sym->type.kind) {
+        panic("type mismatch");
+    }
+
+    if (ctx->settype) {
+        ctx->type = &sym->type;
+        ctx->settype = false;
+    }
+
+    printf("load%s %d\n", sym->type.opext, sym->local);
+}
+
+void gen_call_expr(const CallExpr *expr) {
+    // TODO: verify arg types - need to keep track of functions
+    for (size_t i = 0; i < expr->args.len; i++) {
+        ExprContext ctx = {0};
+        ctx.settype = true;
+        gen_expr(&ctx, &expr->args.items[i]);
+    }
+
+    printf("call %.*s\n", (int)expr->name.len, expr->name.items);
 }

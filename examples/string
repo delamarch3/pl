@@ -2,5 +2,12 @@ void main() {
     char *a = "Hello, World!";
     byte b = '\n';
 
+    char *buf = alloc(512);
+    copy(buf, a, 14);
+    print(buf);
+    free(buf);
+
+    // buf[15] = '\0';
+
     return;
 }

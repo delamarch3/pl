@@ -59,3 +59,8 @@ size_t hash(const String *s) {
                                                                                                    \
         value;                                                                                     \
     })
+
+#define clear(map)                                                                                 \
+    for (size_t i = 0; i < (map)->cap; i++) {                                                      \
+        (map)->items[i].len = 0;                                                                   \
+    }\
