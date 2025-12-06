@@ -2,13 +2,13 @@
 
 #include "str.h"
 
-// program -> functions
+// program -> functions | records
 //
 // type -> ident | ident *
 //
 // decl -> type, ident
 //
-// func -> decl ( decls ) { stmts }
+// func -> fn decl ( decls ) { stmts }
 //
 // stmt -> def
 //         | expr
@@ -23,6 +23,8 @@
 // factor -> expr
 //         | ident
 //         | value
+//
+// record -> record ident { decls }
 
 typedef struct {
     String name;
@@ -171,8 +173,22 @@ typedef struct {
     Function *items;
 } Functions;
 
+/* Record */
+
+typedef struct {
+    String name;
+    Declarations fields;
+} Record;
+
+typedef struct {
+    size_t len;
+    size_t cap;
+    Record *items;
+} Records;
+
 /* Program */
 
 typedef struct {
     Functions funcs;
+    Records records;
 } Program;

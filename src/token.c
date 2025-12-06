@@ -25,7 +25,7 @@ char *symbol_values[256] = {
     [T_RBRACK] = "]",    [T_EQUALITY] = "==", [T_NEQUALITY] = "!=", [T_LAND] = "&&",
     [T_LOR] = "||"};
 
-char *keywords[] = {"if", "else", "while", "for", "return", "null"};
+char *keywords[] = {"fn", "if", "else", "while", "for", "return", "null", "record"};
 
 static int isnotdoublequote(char c) {
     return c != '"';

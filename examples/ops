@@ -1,4 +1,13 @@
-void main() {
+record MyType {
+    int a,
+    int b
+}
+
+fn int add(int a, int b) {
+    return a + b;
+}
+
+fn void main() {
     int a = 2;
     int b = 2;
 
@@ -23,8 +32,4 @@ void main() {
     b;
 
     return;
-}
-
-int add(int a, int b) {
-    return a + b;
 }

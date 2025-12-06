@@ -5,7 +5,7 @@
 
 Program parse_program(TokenIter *);
 Function parse_function(TokenIter *);
-Functions parse_functions(TokenIter *);
+Record parse_record(TokenIter *);
 Statement parse_statement(TokenIter *, bool *);
 Statements parse_statements(TokenIter *);
 Type parse_type(TokenIter *);

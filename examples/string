@@ -1,8 +1,8 @@
-void other(int a, int *b) {
+fn void other(int a, int *b) {
 
 }
 
-void main() {
+fn void main() {
     char *a = "Hello, World!";
     byte b = '\n';
 
@@ -17,4 +17,10 @@ void main() {
     // buf[15] = '\0';
 
     return;
+}
+
+
+record MyType {
+    int a;
+    int b;
 }

@@ -8,6 +8,15 @@
 #include "str.h"
 #include "util.h"
 
+// Builtin types
+TypeInfo long_type = {.kind = TypeKindLong, .slotsize = 2, .retext = ".d", .opext = ".d"};
+TypeInfo int_type = {.kind = TypeKindInt, .slotsize = 1, .retext = ".w", .opext = ".w"};
+TypeInfo void_type = {.kind = TypeKindVoid, .slotsize = 0, .retext = "", .opext = ""};
+TypeInfo char_type = {.kind = TypeKindChar, .slotsize = 1, .retext = ".w", .opext = ".w"};
+TypeInfo char_ptr_type = {
+    .kind = TypeKindChar, .slotsize = 2, .retext = ".d", .opext = ".d", .pointer = true};
+TypeInfo byte_type = {.kind = TypeKindByte, .slotsize = 1, .retext = ".w", .opext = ".b"};
+
 static TypeInfo get_type(const Type *asttype) {
     TypeInfo type;
 
@@ -226,10 +235,10 @@ void gen_while_statement(const TypeInfo *fntype, const WhileStatement *stmt) {
 void gen_return_statement(const TypeInfo *fntype, const ReturnStatement *stmt) {
     ExprContext ctx = {0};
 
-    if (fntype->kind == Void && stmt->expr != nullptr) {
+    if (fntype->kind == TypeKindVoid && stmt->expr != nullptr) {
         panic("unexpected return expression, function type is void");
     }
-    if (fntype->kind != Void && stmt->expr == nullptr) {
+    if (fntype->kind != TypeKindVoid && stmt->expr == nullptr) {
         panic("missing return expression, function type is not void");
     }
 
@@ -374,7 +383,7 @@ void gen_ident_expr(ExprContext *ctx, const IdentExpr *expr) {
         panic("%.*s used before declaration", (int)expr->name.len, expr->name.items);
     }
 
-    if (sym->type.kind == Void) {
+    if (sym->type.kind == TypeKindVoid) {
         panic("cannot load value of type void");
     }
 

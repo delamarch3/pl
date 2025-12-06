@@ -88,7 +88,18 @@ static bool checkkw(TokenIter *ts, const char *kw) {
 Program parse_program(TokenIter *ts) {
     Program prg = {0};
 
-    prg.funcs = parse_functions(ts);
+    do {
+        if (checkkw(ts, "fn")) {
+            Function func = parse_function(ts);
+            append(&prg.funcs, func);
+        } else if (checkkw(ts, "record")) {
+            Record rec = parse_record(ts);
+            append(&prg.records, rec);
+        } else {
+            Token *t = next(ts);
+            panic_unexpected_token(t);
+        }
+    } while (peek(ts) != nullptr);
 
     return prg;
 }
@@ -115,15 +126,19 @@ Function parse_function(TokenIter *ts) {
     return func;
 }
 
-Functions parse_functions(TokenIter *ts) {
-    Functions funcs = {0};
+Record parse_record(TokenIter *ts) {
+    Record rec = {0};
 
+    rec.name = expect(ts, T_IDENT).value;
+
+    expect(ts, T_LBRACE);
     do {
-        Function func = parse_function(ts);
-        append(&funcs, func);
-    } while (peek(ts) != nullptr);
+        Declaration field = parse_declaration(ts);
+        append(&rec.fields, field);
+    } while (check(ts, T_COMMA));
+    expect(ts, T_RBRACE);
 
-    return funcs;
+    return rec;
 }
 
 Statement parse_statement(TokenIter *ts, bool *matched) {
