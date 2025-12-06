@@ -45,7 +45,7 @@ static TypeInfo get_type(const Type *asttype) {
 }
 
 // TODO
-typedef enum { VariableSymbol, FunctionSymbol, RecordSymbol } SymbolKind;
+typedef enum { SymbolKindVariable, SymbolKindFunction, SymbolKindRecord } SymbolKind;
 typedef struct {
     String key;
     SymbolKind kind;
@@ -91,7 +91,7 @@ void gen_function(const Function *func) {
     TypeInfo type = get_type(&decl->type);
 
     TypeInfos fnargs = {0};
-    Symbol fnsym = {.key = func->decl.name, .type = type, .kind = FunctionSymbol};
+    Symbol fnsym = {.key = func->decl.name, .type = type, .kind = SymbolKindFunction};
     if (get(&global_symbols, &fnsym.key) != nullptr) {
         panic("function redefined: %.*s", (int)fnsym.key.len, fnsym.key.items);
     }
@@ -104,7 +104,7 @@ void gen_function(const Function *func) {
         locals += type.slotsize;
 
         Symbol sym = {
-            .key = args->items[i].name, .local = local, .type = type, .kind = VariableSymbol};
+            .key = args->items[i].name, .local = local, .type = type, .kind = SymbolKindVariable};
         if (get(&scoped_symbols, &sym.key) != nullptr) {
             panic("function argument redefined: %.*s", (int)sym.key.len, sym.key.items);
         }
@@ -126,22 +126,22 @@ void gen_function(const Function *func) {
 
 void gen_statement(const TypeInfo *fntype, const Statement *stmt) {
     switch (stmt->kind) {
-    case S_ASSIGN:
+    case StatementKindAssign:
         gen_assign_statement(&stmt->value.a);
         break;
-    case S_EXPR:
+    case StatementKindExpr:
         gen_expr_statement(&stmt->value.e);
         break;
-    case S_DEFINITION:
+    case StatementKindDefinition:
         gen_definition_statement(&stmt->value.d);
         break;
-    case S_IF:
+    case StatementKindIf:
         gen_if_statement(fntype, &stmt->value.i);
         break;
-    case S_WHILE:
+    case StatementKindWhile:
         gen_while_statement(fntype, &stmt->value.w);
         break;
-    case S_RETURN:
+    case StatementKindReturn:
         gen_return_statement(fntype, &stmt->value.r);
         break;
     }
@@ -173,7 +173,7 @@ void gen_definition_statement(const DefinitionStatement *stmt) {
     TypeInfo type = get_type(&stmt->decl.type);
     int local = locals;
     locals += type.slotsize;
-    Symbol sym = {.key = stmt->decl.name, .local = local, .type = type, .kind = VariableSymbol};
+    Symbol sym = {.key = stmt->decl.name, .local = local, .type = type, .kind = SymbolKindVariable};
 
     if (get(&scoped_symbols, &sym.key) != nullptr) {
         panic("variable redefined: %.*s", (int)sym.key.len, sym.key.items);
@@ -252,40 +252,40 @@ void gen_return_statement(const TypeInfo *fntype, const ReturnStatement *stmt) {
 
 void gen_op(const char *opext, BinaryOp op) {
     switch (op) {
-    case OP_ADD:
+    case BinaryOpAdd:
         printf("add%s\n", opext);
         break;
-    case OP_SUB:
+    case BinaryOpSub:
         printf("sub%s\n", opext);
         break;
-    case OP_MUL:
+    case BinaryOpMul:
         printf("mul%s\n", opext);
         break;
-    case OP_DIV:
+    case BinaryOpDiv:
         printf("div%s\n", opext);
         break;
-    case OP_LT:
+    case BinaryOpLt:
         gen_cmp_op(opext, "lt");
         break;
-    case OP_LE:
+    case BinaryOpLe:
         gen_cmp_op(opext, "le");
         break;
-    case OP_GT:
+    case BinaryOpGt:
         gen_cmp_op(opext, "gt");
         break;
-    case OP_GE:
+    case BinaryOpGe:
         gen_cmp_op(opext, "ge");
         break;
-    case OP_EQY:
+    case BinaryOpEqy:
         gen_cmp_op(opext, "eq");
         break;
-    case OP_NEQY:
+    case BinaryOpNEqy:
         gen_cmp_op(opext, "ne");
         break;
-    case OP_LAND:
+    case BinaryOpLogAnd:
         gen_logical_op(opext, 2);
         break;
-    case OP_LOR:
+    case BinaryOpLogOr:
         gen_logical_op(opext, 1);
         break;
     }
@@ -319,16 +319,16 @@ void gen_logical_op(const char *opext, int ntrue) {
 
 void gen_expr(ExprContext *ctx, const Expr *expr) {
     switch (expr->kind) {
-    case E_VALUE:
+    case ExprKindValue:
         gen_value_expr(ctx, &expr->value.v);
         break;
-    case E_BINARY_OP:
+    case ExprKindBinaryOp:
         gen_binary_op_expr(ctx, &expr->value.b);
         break;
-    case E_IDENT:
+    case ExprKindIdent:
         gen_ident_expr(ctx, &expr->value.id);
         break;
-    case E_CALL:
+    case ExprKindCall:
         gen_call_expr(ctx, &expr->value.c);
         break;
     }
@@ -338,7 +338,7 @@ void gen_value_expr(ExprContext *ctx, const ValueExpr *expr) {
     char *opext = ctx->type != nullptr ? ctx->type->opext : "";
 
     switch (expr->kind) {
-    case V_NUMBER:
+    case ValueKindNumber:
         printf("push%s %ld\n", opext, expr->value.num);
 
         if (ctx->settype) {
@@ -346,7 +346,7 @@ void gen_value_expr(ExprContext *ctx, const ValueExpr *expr) {
         }
 
         break;
-    case V_STRING:
+    case ValueKindString:
         int s = strings++;
         printf(".data s%d .string \"%.*s\"\n", s, (int)expr->value.str.len, expr->value.str.items);
         printf("dataptr s%d\n", s);
@@ -357,7 +357,7 @@ void gen_value_expr(ExprContext *ctx, const ValueExpr *expr) {
         }
 
         break;
-    case V_CHAR:
+    case ValueKindChar:
         printf("push%s '%.*s'\n", opext, (int)expr->value.ch.len, expr->value.ch.items);
 
         if (ctx->settype) {

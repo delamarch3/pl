@@ -22,9 +22,10 @@
     }                                                                                              \
     exit(1);
 
-static char *op_values[] = {[OP_ADD] = "+",  [OP_SUB] = "-",   [OP_MUL] = "*",   [OP_DIV] = "/",
-                            [OP_LT] = "<",   [OP_LE] = "<=",   [OP_GT] = ">",    [OP_GE] = ">=",
-                            [OP_EQY] = "==", [OP_NEQY] = "!=", [OP_LAND] = "&&", [OP_LOR] = "||"};
+static char *op_values[] = {
+    [BinaryOpAdd] = "+",  [BinaryOpSub] = "-",   [BinaryOpMul] = "*",     [BinaryOpDiv] = "/",
+    [BinaryOpLt] = "<",   [BinaryOpLe] = "<=",   [BinaryOpGt] = ">",      [BinaryOpGe] = ">=",
+    [BinaryOpEqy] = "==", [BinaryOpNEqy] = "!=", [BinaryOpLogAnd] = "&&", [BinaryOpLogOr] = "||"};
 
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
@@ -76,7 +77,7 @@ static bool checkn(TokenIter *ts, TokenKind start, ...) {
 
 static bool checkkw(TokenIter *ts, const char *kw) {
     Token *a = peek(ts);
-    if (a == nullptr || a->kind != T_KEYWORD || strcmp(kw, a->value.items) != 0) {
+    if (a == nullptr || a->kind != TokenKindKeyword || strcmp(kw, a->value.items) != 0) {
         return false;
     }
 
@@ -109,8 +110,8 @@ Function parse_function(TokenIter *ts) {
 
     func.decl = parse_declaration(ts);
 
-    expect(ts, T_LPAREN);
-    if (check(ts, T_RPAREN)) {
+    expect(ts, TokenKindLParen);
+    if (check(ts, TokenKindRParen)) {
         func.stmts = parse_statements(ts);
         return func;
     }
@@ -118,8 +119,8 @@ Function parse_function(TokenIter *ts) {
     do {
         Declaration arg = parse_declaration(ts);
         append(&func.args, arg);
-    } while (check(ts, T_COMMA));
-    expect(ts, T_RPAREN);
+    } while (check(ts, TokenKindComma));
+    expect(ts, TokenKindRParen);
 
     func.stmts = parse_statements(ts);
 
@@ -129,14 +130,14 @@ Function parse_function(TokenIter *ts) {
 Record parse_record(TokenIter *ts) {
     Record rec = {0};
 
-    rec.name = expect(ts, T_IDENT).value;
+    rec.name = expect(ts, TokenKindIdent).value;
 
-    expect(ts, T_LBRACE);
+    expect(ts, TokenKindLBrace);
     do {
         Declaration field = parse_declaration(ts);
         append(&rec.fields, field);
-    } while (check(ts, T_COMMA));
-    expect(ts, T_RBRACE);
+    } while (check(ts, TokenKindComma));
+    expect(ts, TokenKindRBrace);
 
     return rec;
 }
@@ -145,64 +146,66 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
     Statement stmt = {0};
     *matched = true;
 
-    if (checkn(ts, T_IDENT, T_IDENT, 0) || checkn(ts, T_IDENT, T_STAR, 0)) {
+    if (checkn(ts, TokenKindIdent, TokenKindIdent, 0) ||
+        checkn(ts, TokenKindIdent, TokenKindStar, 0)) {
         ts->position -= 2;
 
-        stmt.kind = S_DEFINITION;
+        stmt.kind = StatementKindDefinition;
 
         DefinitionStatement *def = &stmt.value.d;
         def->decl = parse_declaration(ts);
-        expect(ts, T_EQUAL);
+        expect(ts, TokenKindEqual);
         def->expr = parse_expr(ts, 0);
 
-        expect(ts, T_SEMICOLON);
-    } else if (checkn(ts, T_IDENT, T_EQUAL, 0)) {
+        expect(ts, TokenKindSemicolon);
+    } else if (checkn(ts, TokenKindIdent, TokenKindEqual, 0)) {
         ts->position -= 2;
 
-        stmt.kind = S_ASSIGN;
+        stmt.kind = StatementKindAssign;
 
         AssignStatement *asn = &stmt.value.a;
-        Token id = expect(ts, T_IDENT);
+        Token id = expect(ts, TokenKindIdent);
         asn->name = id.value;
-        expect(ts, T_EQUAL);
+        expect(ts, TokenKindEqual);
         asn->expr = parse_expr(ts, 0);
 
-        expect(ts, T_SEMICOLON);
+        expect(ts, TokenKindSemicolon);
     } else if (checkkw(ts, "if")) {
-        stmt.kind = S_IF;
+        stmt.kind = StatementKindIf;
 
         IfStatement *ifs = &stmt.value.i;
         ifs->expr = parse_expr(ts, 0);
         ifs->stmts = parse_statements(ts);
     } else if (checkkw(ts, "while")) {
-        stmt.kind = S_WHILE;
+        stmt.kind = StatementKindWhile;
 
         WhileStatement *ws = &stmt.value.w;
         ws->expr = parse_expr(ts, 0);
         ws->stmts = parse_statements(ts);
     } else if (checkkw(ts, "return")) {
-        stmt.kind = S_RETURN;
+        stmt.kind = StatementKindReturn;
 
         ReturnStatement *ret = &stmt.value.r;
 
-        if (!check(ts, T_SEMICOLON)) {
+        if (!check(ts, TokenKindSemicolon)) {
             ret->expr = box(parse_expr(ts, 0));
-            expect(ts, T_SEMICOLON);
+            expect(ts, TokenKindSemicolon);
         }
     } else {
         Token *t = peek(ts);
-        if (t == nullptr || (t->kind != T_IDENT && t->kind != T_LPAREN && t->kind != T_STRING &&
-                             t->kind != T_NUMBER)) { // parse_prefix
+        if (t == nullptr ||
+            (t->kind != TokenKindIdent && t->kind != TokenKindLParen &&
+             t->kind != TokenKindString && t->kind != TokenKindNumber)) { // parse_prefix
             *matched = false;
             return stmt;
         }
 
-        stmt.kind = S_EXPR;
+        stmt.kind = StatementKindExpr;
 
         ExprStatement *as = &stmt.value.e;
         as->expr = parse_expr(ts, 0);
 
-        expect(ts, T_SEMICOLON);
+        expect(ts, TokenKindSemicolon);
     }
 
     return stmt;
@@ -211,7 +214,7 @@ Statement parse_statement(TokenIter *ts, bool *matched) {
 Statements parse_statements(TokenIter *ts) {
     Statements stmts = {0};
 
-    expect(ts, T_LBRACE);
+    expect(ts, TokenKindLBrace);
     while (true) {
         bool matched = false;
         Statement stmt = parse_statement(ts, &matched);
@@ -221,7 +224,7 @@ Statements parse_statements(TokenIter *ts) {
 
         append(&stmts, stmt);
     }
-    expect(ts, T_RBRACE);
+    expect(ts, TokenKindRBrace);
 
     return stmts;
 }
@@ -229,8 +232,8 @@ Statements parse_statements(TokenIter *ts) {
 Type parse_type(TokenIter *ts) {
     Type type = {0};
 
-    type.name = expect(ts, T_IDENT).value;
-    type.pointer = check(ts, T_STAR);
+    type.name = expect(ts, TokenKindIdent).value;
+    type.pointer = check(ts, TokenKindStar);
 
     return type;
 }
@@ -239,30 +242,30 @@ Declaration parse_declaration(TokenIter *ts) {
     Declaration decl = {0};
 
     decl.type = parse_type(ts);
-    decl.name = expect(ts, T_IDENT).value;
+    decl.name = expect(ts, TokenKindIdent).value;
 
     return decl;
 }
 
 int next_prec(BinaryOp op) {
     switch (op) {
-    case OP_LOR:
+    case BinaryOpLogOr:
         return 2;
-    case OP_LAND:
+    case BinaryOpLogAnd:
         return 3;
-    case OP_EQY:
-    case OP_NEQY:
+    case BinaryOpEqy:
+    case BinaryOpNEqy:
         return 4;
-    case OP_GE:
-    case OP_GT:
-    case OP_LE:
-    case OP_LT:
+    case BinaryOpGe:
+    case BinaryOpGt:
+    case BinaryOpLe:
+    case BinaryOpLt:
         return 8;
-    case OP_ADD:
-    case OP_SUB:
+    case BinaryOpAdd:
+    case BinaryOpSub:
         return 9;
-    case OP_MUL:
-    case OP_DIV:
+    case BinaryOpMul:
+    case BinaryOpDiv:
         return 10;
     default:
         fprintf(stderr, "uncountered unexpected op: %d", op);
@@ -283,41 +286,41 @@ Expr parse_expr(TokenIter *ts, int prec) {
 
         BinaryOp op;
         switch (t->kind) {
-        case T_PLUS:
-            op = OP_ADD;
+        case TokenKindPlus:
+            op = BinaryOpAdd;
             break;
-        case T_MINUS:
-            op = OP_SUB;
+        case TokenKindMinus:
+            op = BinaryOpSub;
             break;
-        case T_STAR:
-            op = OP_MUL;
+        case TokenKindStar:
+            op = BinaryOpMul;
             break;
-        case T_SLASH:
-            op = OP_DIV;
+        case TokenKindSlash:
+            op = BinaryOpDiv;
             break;
-        case T_LT:
-            op = OP_LT;
+        case TokenKindLt:
+            op = BinaryOpLt;
             break;
-        case T_GT:
-            op = OP_GT;
+        case TokenKindGt:
+            op = BinaryOpGt;
             break;
-        case T_LE:
-            op = OP_LE;
+        case TokenKindLe:
+            op = BinaryOpLe;
             break;
-        case T_GE:
-            op = OP_GE;
+        case TokenKindGe:
+            op = BinaryOpGe;
             break;
-        case T_EQUALITY:
-            op = OP_EQY;
+        case TokenKindEquality:
+            op = BinaryOpEqy;
             break;
-        case T_NEQUALITY:
-            op = OP_NEQY;
+        case TokenKindNEquality:
+            op = BinaryOpNEqy;
             break;
-        case T_LAND:
-            op = OP_LAND;
+        case TokenKindLogAnd:
+            op = BinaryOpLogAnd;
             break;
-        case T_LOR:
-            op = OP_LOR;
+        case TokenKindLogOr:
+            op = BinaryOpLogOr;
             break;
         default:
             return expr;
@@ -342,49 +345,49 @@ Expr parse_prefix(TokenIter *ts) {
     ValueExpr *value;
     Expr expr = {0};
     switch (t->kind) {
-    case T_NUMBER:
-        expr.kind = E_VALUE;
+    case TokenKindNumber:
+        expr.kind = ExprKindValue;
         value = &expr.value.v;
-        value->kind = V_NUMBER;
+        value->kind = ValueKindNumber;
         value->value.num = strtol(t->value.items, nullptr, 10);
         break;
-    case T_STRING:
-        expr.kind = E_VALUE;
+    case TokenKindString:
+        expr.kind = ExprKindValue;
         value = &expr.value.v;
-        value->kind = V_STRING;
+        value->kind = ValueKindString;
         value->value.str = t->value;
         break;
-    case T_CHAR:
-        expr.kind = E_VALUE;
+    case TokenKindChar:
+        expr.kind = ExprKindValue;
         value = &expr.value.v;
-        value->kind = V_CHAR;
+        value->kind = ValueKindChar;
         value->value.ch = t->value;
         break;
-    case T_LPAREN:
+    case TokenKindLParen:
         expr = parse_expr(ts, 0);
-        expect(ts, T_RPAREN);
+        expect(ts, TokenKindRParen);
         break;
-    case T_IDENT:
+    case TokenKindIdent:
         Token *n = peek(ts);
-        if (n == nullptr || n->kind != T_LPAREN) {
-            expr.kind = E_IDENT;
+        if (n == nullptr || n->kind != TokenKindLParen) {
+            expr.kind = ExprKindIdent;
             IdentExpr *id = &expr.value.id;
             id->name = t->value;
         } else {
-            expr.kind = E_CALL;
+            expr.kind = ExprKindCall;
             CallExpr *c = &expr.value.c;
             c->name = t->value;
 
-            expect(ts, T_LPAREN);
-            if (check(ts, T_RPAREN)) {
+            expect(ts, TokenKindLParen);
+            if (check(ts, TokenKindRParen)) {
                 return expr;
             }
 
             do {
                 Expr expr = parse_expr(ts, 0);
                 append(&c->args, expr);
-            } while (check(ts, T_COMMA));
-            expect(ts, T_RPAREN);
+            } while (check(ts, TokenKindComma));
+            expect(ts, TokenKindRParen);
         }
 
         break;
@@ -397,7 +400,7 @@ Expr parse_prefix(TokenIter *ts) {
 
 Expr binop(Expr lhs, BinaryOp op, Expr rhs) {
     Expr expr = {0};
-    expr.kind = E_BINARY_OP;
+    expr.kind = ExprKindBinaryOp;
     BinaryOpExpr *bop = &expr.value.b;
     bop->left = box(lhs);
     bop->op = op;
@@ -412,7 +415,7 @@ void print_expr(const Expr *expr) {
     }
 
     switch (expr->kind) {
-    case E_BINARY_OP:
+    case ExprKindBinaryOp:
         BinaryOpExpr b = expr->value.b;
         printf("(%s ", op_values[b.op]);
         print_expr(b.left);
@@ -421,27 +424,27 @@ void print_expr(const Expr *expr) {
         printf(")");
 
         break;
-    case E_VALUE:
+    case ExprKindValue:
         ValueExpr v = expr->value.v;
         switch (v.kind) {
-        case V_NUMBER:
+        case ValueKindNumber:
             printf("%ld", v.value.num);
             break;
-        case V_STRING:
+        case ValueKindString:
             printf("\"%.*s\"", (int)v.value.str.len, v.value.str.items);
             break;
-        case V_CHAR:
+        case ValueKindChar:
             printf("'%.*s'", (int)v.value.ch.len, v.value.ch.items);
             break;
         }
 
         break;
-    case E_IDENT:
+    case ExprKindIdent:
         IdentExpr id = expr->value.id;
         printf("%.*s", (int)id.name.len, id.name.items);
 
         break;
-    case E_CALL:
+    case ExprKindCall:
         char *sep = "";
         CallExpr c = expr->value.c;
         printf("%.*s(", (int)c.name.len, c.name.items);
@@ -474,33 +477,33 @@ void print_statement(const Statement *stmt, int tab) {
     }
 
     switch (stmt->kind) {
-    case S_DEFINITION:
+    case StatementKindDefinition:
         DefinitionStatement def = stmt->value.d;
         print_expr(&def.expr);
         break;
-    case S_ASSIGN:
+    case StatementKindAssign:
         // AssignStatement asn = stmt->value.a;
         todo("print assign");
         break;
-    case S_EXPR:
+    case StatementKindExpr:
         ExprStatement e = stmt->value.e;
         print_expr(&e.expr);
         break;
-    case S_IF:
+    case StatementKindIf:
         IfStatement ifs = stmt->value.i;
         printf("if ");
         print_expr(&ifs.expr);
         printf("\n");
         print_statements(&ifs.stmts, tab + 1);
         break;
-    case S_WHILE:
+    case StatementKindWhile:
         WhileStatement ws = stmt->value.w;
         printf("while ");
         print_expr(&ws.expr);
         printf("\n");
         print_statements(&ws.stmts, tab + 1);
         break;
-    case S_RETURN:
+    case StatementKindReturn:
         ReturnStatement ret = stmt->value.r;
         printf("return(");
         print_expr(ret.expr);

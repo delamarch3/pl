@@ -13,17 +13,20 @@
     exit(1);
 
 TokenKind symbol_tokens[256] = {
-    ['('] = T_LPAREN, [')'] = T_RPAREN, ['{'] = T_LBRACE, ['}'] = T_RBRACE, [';'] = T_SEMICOLON,
-    ['='] = T_EQUAL,  ['-'] = T_MINUS,  ['+'] = T_PLUS,   ['/'] = T_SLASH,  ['*'] = T_STAR,
-    ['<'] = T_LT,     ['>'] = T_GT,     [','] = T_COMMA,  ['['] = T_LBRACK, [']'] = T_RBRACK};
+    ['('] = TokenKindLParen, [')'] = TokenKindRParen,    ['{'] = TokenKindLBrace,
+    ['}'] = TokenKindRBrace, [';'] = TokenKindSemicolon, ['='] = TokenKindEqual,
+    ['-'] = TokenKindMinus,  ['+'] = TokenKindPlus,      ['/'] = TokenKindSlash,
+    ['*'] = TokenKindStar,   ['<'] = TokenKindLt,        ['>'] = TokenKindGt,
+    [','] = TokenKindComma,  ['['] = TokenKindLBrack,    [']'] = TokenKindRBrack};
 
 char *symbol_values[256] = {
-    [T_LPAREN] = "(",    [T_RPAREN] = ")",    [T_LBRACE] = "{",     [T_RBRACE] = "}",
-    [T_SEMICOLON] = ";", [T_EQUAL] = "=",     [T_MINUS] = "-",      [T_PLUS] = "+",
-    [T_SLASH] = "/",     [T_STAR] = "*",      [T_LT] = "<",         [T_LE] = "<=",
-    [T_GT] = ">",        [T_GE] = ">=",       [T_COMMA] = ",",      [T_LBRACK] = "[",
-    [T_RBRACK] = "]",    [T_EQUALITY] = "==", [T_NEQUALITY] = "!=", [T_LAND] = "&&",
-    [T_LOR] = "||"};
+    [TokenKindLParen] = "(",     [TokenKindRParen] = ")",    [TokenKindLBrace] = "{",
+    [TokenKindRBrace] = "}",     [TokenKindSemicolon] = ";", [TokenKindEqual] = "=",
+    [TokenKindMinus] = "-",      [TokenKindPlus] = "+",      [TokenKindSlash] = "/",
+    [TokenKindStar] = "*",       [TokenKindLt] = "<",        [TokenKindLe] = "<=",
+    [TokenKindGt] = ">",         [TokenKindGe] = ">=",       [TokenKindComma] = ",",
+    [TokenKindLBrack] = "[",     [TokenKindRBrack] = "]",    [TokenKindEquality] = "==",
+    [TokenKindNEquality] = "!=", [TokenKindLogAnd] = "&&",   [TokenKindLogOr] = "||"};
 
 char *keywords[] = {"fn", "if", "else", "while", "for", "return", "null", "record"};
 
@@ -107,12 +110,12 @@ Tokens tokenise(const String *s) {
             String value = {0};
             extend_while(&value, &chars, isalphanumeric);
 
-            tok.kind = T_IDENT;
+            tok.kind = TokenKindIdent;
             tok.value = value;
 
             for (size_t i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
                 if (strcmp(keywords[i], tok.value.items) == 0) {
-                    tok.kind = T_KEYWORD;
+                    tok.kind = TokenKindKeyword;
                     break;
                 }
             }
@@ -120,7 +123,7 @@ Tokens tokenise(const String *s) {
             String value = {0};
             extend_while(&value, &chars, isnumeric);
 
-            tok.kind = T_NUMBER;
+            tok.kind = TokenKindNumber;
             tok.value = value;
         } else if (*c == '/') {
             next(&chars);
@@ -129,7 +132,7 @@ Tokens tokenise(const String *s) {
                 consume_while(&chars, isnotnewline);
                 continue;
             } else {
-                tok.kind = T_SLASH;
+                tok.kind = TokenKindSlash;
             }
         } else if (*c == '-') {
             next(&chars);
@@ -138,9 +141,9 @@ Tokens tokenise(const String *s) {
             extend_while(&value, &chars, isnumeric);
 
             if (value.len == 1) {
-                tok.kind = T_MINUS;
+                tok.kind = TokenKindMinus;
             } else {
-                tok.kind = T_NUMBER;
+                tok.kind = TokenKindNumber;
                 tok.value = value;
             }
         } else if (*c == '"') {
@@ -155,7 +158,7 @@ Tokens tokenise(const String *s) {
                 exit(1);
             }
 
-            tok.kind = T_STRING;
+            tok.kind = TokenKindString;
             tok.value = value;
         } else if (*c == '\'') {
             next(&chars);
@@ -182,25 +185,25 @@ Tokens tokenise(const String *s) {
                 exit(1);
             }
 
-            tok.kind = T_CHAR;
+            tok.kind = TokenKindChar;
             tok.value = value;
         } else if (*c == '<') {
             next(&chars);
-            tok.kind = T_LT;
+            tok.kind = TokenKindLt;
 
             char *n = peek(&chars);
             if (n != nullptr && *n == '=') {
                 next(&chars);
-                tok.kind = T_LE;
+                tok.kind = TokenKindLe;
             }
         } else if (*c == '>') {
             next(&chars);
-            tok.kind = T_GT;
+            tok.kind = TokenKindGt;
 
             char *n = peek(&chars);
             if (n != nullptr && *n == '=') {
                 next(&chars);
-                tok.kind = T_GE;
+                tok.kind = TokenKindGe;
             }
         } else if (*c == '&') {
             next(&chars);
@@ -209,7 +212,7 @@ Tokens tokenise(const String *s) {
                 panic_unexpected_symbol(c);
             }
 
-            tok.kind = T_LAND;
+            tok.kind = TokenKindLogAnd;
         } else if (*c == '|') {
             next(&chars);
             char *n = next(&chars);
@@ -217,7 +220,7 @@ Tokens tokenise(const String *s) {
                 panic_unexpected_symbol(c);
             }
 
-            tok.kind = T_LOR;
+            tok.kind = TokenKindLogOr;
         } else if (*c == '!') {
             next(&chars);
             char *n = next(&chars);
@@ -225,15 +228,15 @@ Tokens tokenise(const String *s) {
                 panic_unexpected_symbol(c);
             }
 
-            tok.kind = T_NEQUALITY;
+            tok.kind = TokenKindNEquality;
         } else if (*c == '=') {
             next(&chars);
             char *n = peek(&chars);
             if (n != nullptr && *n == '=') {
                 next(&chars);
-                tok.kind = T_EQUALITY;
+                tok.kind = TokenKindEquality;
             } else {
-                tok.kind = T_EQUAL;
+                tok.kind = TokenKindEqual;
             }
         } else {
             next(&chars);
@@ -260,13 +263,13 @@ void print_tokens(const Tokens *tokens) {
         Token t = tokens->items[i];
         printf("line %ld: ", t.pos.line);
         switch (t.kind) {
-        case T_IDENT:
-        case T_KEYWORD:
-        case T_NUMBER:
-        case T_STRING:
+        case TokenKindIdent:
+        case TokenKindKeyword:
+        case TokenKindNumber:
+        case TokenKindString:
             printf("%.*s\n", (int)t.value.len, t.value.items);
             break;
-        case T_EOF:
+        case TokenKindEof:
             break;
         default:
             printf("%s\n", symbol_values[t.kind]);

@@ -44,7 +44,7 @@ typedef struct {
 
 /* Expressions */
 
-typedef enum { E_BINARY_OP, E_VALUE, E_IDENT, E_CALL } ExprKind;
+typedef enum { ExprKindBinaryOp, ExprKindValue, ExprKindIdent, ExprKindCall } ExprKind;
 typedef struct Expr Expr;
 
 typedef struct {
@@ -54,18 +54,18 @@ typedef struct {
 } Exprs;
 
 typedef enum {
-    OP_ADD,
-    OP_SUB,
-    OP_MUL,
-    OP_DIV,
-    OP_LT,
-    OP_LE,
-    OP_GT,
-    OP_GE,
-    OP_EQY,
-    OP_NEQY,
-    OP_LAND,
-    OP_LOR
+    BinaryOpAdd,
+    BinaryOpSub,
+    BinaryOpMul,
+    BinaryOpDiv,
+    BinaryOpLt,
+    BinaryOpLe,
+    BinaryOpGt,
+    BinaryOpGe,
+    BinaryOpEqy,
+    BinaryOpNEqy,
+    BinaryOpLogAnd,
+    BinaryOpLogOr
 } BinaryOp;
 typedef struct {
     Expr *left;
@@ -79,7 +79,7 @@ typedef union {
     long num;
 } Value;
 
-typedef enum { V_STRING, V_NUMBER, V_CHAR } ValueKind;
+typedef enum { ValueKindString, ValueKindNumber, ValueKindChar } ValueKind;
 typedef struct {
     ValueKind kind;
     Value value;
@@ -108,7 +108,14 @@ struct Expr {
 
 /* Statements */
 
-typedef enum { S_DEFINITION, S_ASSIGN, S_EXPR, S_IF, S_WHILE, S_RETURN } StatementKind;
+typedef enum {
+    StatementKindDefinition,
+    StatementKindAssign,
+    StatementKindExpr,
+    StatementKindIf,
+    StatementKindWhile,
+    StatementKindReturn
+} StatementKind;
 typedef struct Statement Statement;
 
 typedef struct {
