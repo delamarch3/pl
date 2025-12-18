@@ -49,6 +49,6 @@ void gen_binary_op_expr(ExprContext *, const BinaryOpExpr *exp);
 void gen_ident_expr(ExprContext *, const IdentExpr *);
 void gen_call_expr(ExprContext *, const CallExpr *);
 
-void gen_op(const char *, BinaryOp);
+void gen_op(ExprContext *, BinaryOp);
 void gen_cmp_op(const char *, const char *);
 void gen_logical_op(const char *, int);

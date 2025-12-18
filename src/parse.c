@@ -249,6 +249,9 @@ Declaration parse_declaration(TokenIter *ts) {
 
 int next_prec(BinaryOp op) {
     switch (op) {
+    case BinaryOpIndex:
+    case BinaryOpAccess:
+        return 1;
     case BinaryOpLogOr:
         return 2;
     case BinaryOpLogAnd:
@@ -267,9 +270,6 @@ int next_prec(BinaryOp op) {
     case BinaryOpMul:
     case BinaryOpDiv:
         return 10;
-    default:
-        fprintf(stderr, "uncountered unexpected op: %d", op);
-        exit(1);
     }
 
     return 0;
@@ -322,6 +322,12 @@ Expr parse_expr(TokenIter *ts, int prec) {
         case TokenKindLogOr:
             op = BinaryOpLogOr;
             break;
+        case TokenKindLBrack:
+            op = BinaryOpIndex;
+            break;
+        case TokenKindDot:
+            op = BinaryOpAccess;
+            break;
         default:
             return expr;
         }
@@ -334,6 +340,11 @@ Expr parse_expr(TokenIter *ts, int prec) {
 
         Expr rhs = parse_expr(ts, nprec);
         expr = binop(expr, op, rhs);
+
+        // Since the syntax is: lhs [ rhs ]
+        if (op == BinaryOpIndex) {
+            expect(ts, TokenKindRBrack);
+        }
     }
 
     return expr;

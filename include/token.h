@@ -35,6 +35,7 @@ typedef enum {
     TokenKindComma,
     TokenKindLogAnd,
     TokenKindLogOr,
+    TokenKindDot,
 
     TokenKindEof,
 } TokenKind;

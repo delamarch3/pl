@@ -65,8 +65,11 @@ typedef enum {
     BinaryOpEqy,
     BinaryOpNEqy,
     BinaryOpLogAnd,
-    BinaryOpLogOr
+    BinaryOpLogOr,
+    BinaryOpIndex,
+    BinaryOpAccess
 } BinaryOp;
+
 typedef struct {
     Expr *left;
     BinaryOp op;

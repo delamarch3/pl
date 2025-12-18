@@ -17,7 +17,8 @@ TokenKind symbol_tokens[256] = {
     ['}'] = TokenKindRBrace, [';'] = TokenKindSemicolon, ['='] = TokenKindEqual,
     ['-'] = TokenKindMinus,  ['+'] = TokenKindPlus,      ['/'] = TokenKindSlash,
     ['*'] = TokenKindStar,   ['<'] = TokenKindLt,        ['>'] = TokenKindGt,
-    [','] = TokenKindComma,  ['['] = TokenKindLBrack,    [']'] = TokenKindRBrack};
+    [','] = TokenKindComma,  ['['] = TokenKindLBrack,    [']'] = TokenKindRBrack,
+    ['.'] = TokenKindDot};
 
 char *symbol_values[256] = {
     [TokenKindLParen] = "(",     [TokenKindRParen] = ")",    [TokenKindLBrace] = "{",
@@ -26,9 +27,11 @@ char *symbol_values[256] = {
     [TokenKindStar] = "*",       [TokenKindLt] = "<",        [TokenKindLe] = "<=",
     [TokenKindGt] = ">",         [TokenKindGe] = ">=",       [TokenKindComma] = ",",
     [TokenKindLBrack] = "[",     [TokenKindRBrack] = "]",    [TokenKindEquality] = "==",
-    [TokenKindNEquality] = "!=", [TokenKindLogAnd] = "&&",   [TokenKindLogOr] = "||"};
+    [TokenKindNEquality] = "!=", [TokenKindLogAnd] = "&&",   [TokenKindLogOr] = "||",
+    [TokenKindDot] = "."};
 
-char *keywords[] = {"fn", "if", "else", "while", "for", "return", "null", "record"};
+char *keywords[] = {"fn",     "if",   "else",   "while", "for",
+                    "return", "null", "record", "alloc", "sizeof"};
 
 static int isnotdoublequote(char c) {
     return c != '"';

@@ -1,8 +1,10 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "array.h"
+#include "ast.h"
 #include "gen.h"
 #include "map.h"
 #include "str.h"
@@ -250,7 +252,9 @@ void gen_return_statement(const TypeInfo *fntype, const ReturnStatement *stmt) {
     printf("ret%s\n", fntype->retext);
 }
 
-void gen_op(const char *opext, BinaryOp op) {
+void gen_op(ExprContext *ctx, BinaryOp op) {
+    char *opext = ctx->type != nullptr ? ctx->type->opext : "";
+
     switch (op) {
     case BinaryOpAdd:
         printf("add%s\n", opext);
@@ -288,6 +292,22 @@ void gen_op(const char *opext, BinaryOp op) {
     case BinaryOpLogOr:
         gen_logical_op(opext, 1);
         break;
+    case BinaryOpAccess:
+        // This needs to be handled differently - the operands will not be identifiers - need to
+        // look at the type info
+        todo("BinaryOpAccess");
+    case BinaryOpIndex:
+        // This also needs to be handled differently - the rhs slotsize must equal 2
+
+        // lhs and rhs are already on the stack
+        // rhs is the offset - we'll need to multiply by the size
+        assert(ctx->type != nullptr);
+        int size = ctx->type->pointer ? 8 : ctx->type->slotsize;
+
+        printf("push.d %d\n", size);
+        printf("mul.d\n");
+        printf("aload%s\n", opext);
+        break;
     }
 }
 
@@ -305,16 +325,16 @@ void gen_cmp_op(const char *opext, const char *jmpext) {
 
 void gen_logical_op(const char *opext, int ntrue) {
     int iftrue = labels++;
-    int cont = labels++;
+    int iffalse = labels++;
     printf("add\n");
     printf("push%s %d\n", opext, ntrue);
     printf("cmp%s\n", opext);
     printf("jmp.ge l%d\n", iftrue);
     printf("push%s 0\n", opext);
-    printf("jmp l%d\n", cont);
+    printf("jmp l%d\n", iffalse);
     printf("l%d:\n", iftrue);
     printf("push%s 1\n", opext);
-    printf("l%d:\n", cont);
+    printf("l%d:\n", iffalse);
 }
 
 void gen_expr(ExprContext *ctx, const Expr *expr) {
@@ -371,10 +391,7 @@ void gen_value_expr(ExprContext *ctx, const ValueExpr *expr) {
 void gen_binary_op_expr(ExprContext *ctx, const BinaryOpExpr *expr) {
     gen_expr(ctx, expr->left);
     gen_expr(ctx, expr->right);
-
-    char *opext = ctx->type != nullptr ? ctx->type->opext : "";
-
-    gen_op(opext, expr->op);
+    gen_op(ctx, expr->op);
 }
 
 void gen_ident_expr(ExprContext *ctx, const IdentExpr *expr) {
