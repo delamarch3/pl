@@ -44,7 +44,13 @@ typedef struct {
 
 /* Expressions */
 
-typedef enum { ExprKindBinaryOp, ExprKindValue, ExprKindIdent, ExprKindCall } ExprKind;
+typedef enum {
+    ExprKindBinaryOp,
+    ExprKindValue,
+    ExprKindIdent,
+    ExprKindCall,
+    ExprKindUnaryOp
+} ExprKind;
 typedef struct Expr Expr;
 
 typedef struct {
@@ -52,6 +58,15 @@ typedef struct {
     size_t cap;
     Expr *items;
 } Exprs;
+
+typedef enum {
+    UnaryOpSizeOf,
+} UnaryOp;
+
+typedef struct {
+    Expr *expr;
+    UnaryOp op;
+} UnaryOpExpr;
 
 typedef enum {
     BinaryOpAdd,
@@ -82,7 +97,12 @@ typedef union {
     long num;
 } Value;
 
-typedef enum { ValueKindString, ValueKindNumber, ValueKindChar } ValueKind;
+typedef enum {
+    ValueKindString,
+    ValueKindNumber,
+    ValueKindChar,
+} ValueKind;
+
 typedef struct {
     ValueKind kind;
     Value value;
@@ -102,6 +122,7 @@ typedef union {
     ValueExpr v;
     CallExpr c;
     IdentExpr id;
+    UnaryOpExpr u;
 } ExprValue;
 
 struct Expr {
@@ -119,8 +140,8 @@ typedef enum {
     StatementKindWhile,
     StatementKindReturn
 } StatementKind;
-typedef struct Statement Statement;
 
+typedef struct Statement Statement;
 typedef struct {
     size_t len;
     size_t cap;

@@ -13,7 +13,8 @@ Declaration parse_declaration(TokenIter *);
 
 Expr parse_expr(TokenIter *, int);
 Expr parse_prefix(TokenIter *);
-int next_prec(BinaryOp);
+int next_prefix_prec(UnaryOp);
+int next_infix_prec(BinaryOp);
 
 Expr binop(Expr, BinaryOp, Expr);
 

@@ -22,10 +22,12 @@
     }                                                                                              \
     exit(1);
 
-static char *op_values[] = {
+static char *binop_values[] = {
     [BinaryOpAdd] = "+",  [BinaryOpSub] = "-",   [BinaryOpMul] = "*",     [BinaryOpDiv] = "/",
     [BinaryOpLt] = "<",   [BinaryOpLe] = "<=",   [BinaryOpGt] = ">",      [BinaryOpGe] = ">=",
     [BinaryOpEqy] = "==", [BinaryOpNEqy] = "!=", [BinaryOpLogAnd] = "&&", [BinaryOpLogOr] = "||"};
+
+static char *unop_values[] = {[UnaryOpSizeOf] = "sizeof"};
 
 static Token *next_token(TokenIter *ts) {
     Token *t = next(ts);
@@ -247,7 +249,14 @@ Declaration parse_declaration(TokenIter *ts) {
     return decl;
 }
 
-int next_prec(BinaryOp op) {
+int next_prefix_prec(UnaryOp op) {
+    switch (op) {
+    case UnaryOpSizeOf:
+        return 20;
+    }
+}
+
+int next_infix_prec(BinaryOp op) {
     switch (op) {
     case BinaryOpIndex:
     case BinaryOpAccess:
@@ -332,7 +341,7 @@ Expr parse_expr(TokenIter *ts, int prec) {
             return expr;
         }
 
-        int nprec = next_prec(op);
+        int nprec = next_infix_prec(op);
         if (prec >= nprec) {
             break;
         }
@@ -402,6 +411,24 @@ Expr parse_prefix(TokenIter *ts) {
         }
 
         break;
+    // Unary operations
+    case TokenKindKeyword:
+        expr.kind = ExprKindUnaryOp;
+
+        if (strncmp(t->value.items, "sizeof", t->value.len) == 0) {
+            UnaryOp op = UnaryOpSizeOf;
+
+            int nprec = next_prefix_prec(op);
+            Expr rhs = parse_expr(ts, nprec);
+
+            UnaryOpExpr *unop = &expr.value.u;
+            unop->op = op;
+            unop->expr = box(rhs);
+
+            break;
+        }
+
+        // Fall through
     default:
         panic_unexpected_token(t);
     }
@@ -428,10 +455,17 @@ void print_expr(const Expr *expr) {
     switch (expr->kind) {
     case ExprKindBinaryOp:
         BinaryOpExpr b = expr->value.b;
-        printf("(%s ", op_values[b.op]);
+        printf("(%s ", binop_values[b.op]);
         print_expr(b.left);
         printf(" ");
         print_expr(b.right);
+        printf(")");
+
+        break;
+    case ExprKindUnaryOp:
+        UnaryOpExpr u = expr->value.u;
+        printf("(%s ", unop_values[u.op]);
+        print_expr(u.expr);
         printf(")");
 
         break;

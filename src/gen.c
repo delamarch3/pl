@@ -351,6 +351,9 @@ void gen_expr(ExprContext *ctx, const Expr *expr) {
     case ExprKindCall:
         gen_call_expr(ctx, &expr->value.c);
         break;
+    case ExprKindUnaryOp:
+        todo("ExprKindUnaryOp");
+        break;
     }
 }
 
