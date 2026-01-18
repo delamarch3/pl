@@ -81,8 +81,7 @@ typedef enum {
     BinaryOpNEqy,
     BinaryOpLogAnd,
     BinaryOpLogOr,
-    BinaryOpIndex,
-    BinaryOpAccess
+    BinaryOpIndex
 } BinaryOp;
 
 typedef struct {

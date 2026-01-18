@@ -7,17 +7,27 @@
 #include "ast.h"
 #include "gen.h"
 #include "map.h"
+#include "parse.h"
 #include "str.h"
 #include "util.h"
 
 // Builtin types
-TypeInfo long_type = {.kind = TypeKindLong, .slotsize = 2, .retext = ".d", .opext = ".d"};
-TypeInfo int_type = {.kind = TypeKindInt, .slotsize = 1, .retext = ".w", .opext = ".w"};
-TypeInfo void_type = {.kind = TypeKindVoid, .slotsize = 0, .retext = "", .opext = ""};
-TypeInfo char_type = {.kind = TypeKindChar, .slotsize = 1, .retext = ".w", .opext = ".w"};
-TypeInfo char_ptr_type = {
-    .kind = TypeKindChar, .slotsize = 2, .retext = ".d", .opext = ".d", .pointer = true};
-TypeInfo byte_type = {.kind = TypeKindByte, .slotsize = 1, .retext = ".w", .opext = ".b"};
+TypeInfo long_type = {
+    .kind = TypeKindLong, .slotsize = 2, .retext = ".d", .opext = ".d", .realsize = 8};
+TypeInfo int_type = {
+    .kind = TypeKindInt, .slotsize = 1, .retext = ".w", .opext = ".w", .realsize = 4};
+TypeInfo void_type = {
+    .kind = TypeKindVoid, .slotsize = 0, .retext = "", .opext = "", .realsize = 0};
+TypeInfo char_type = {
+    .kind = TypeKindChar, .slotsize = 1, .retext = ".w", .opext = ".w", .realsize = 4};
+TypeInfo char_ptr_type = {.kind = TypeKindChar,
+                          .slotsize = 2,
+                          .retext = ".d",
+                          .opext = ".d",
+                          .pointer = true,
+                          .realsize = 8};
+TypeInfo byte_type = {
+    .kind = TypeKindByte, .slotsize = 1, .retext = ".w", .opext = ".b", .realsize = 1};
 
 static TypeInfo get_type(const Type *asttype) {
     TypeInfo type;
@@ -67,6 +77,27 @@ typedef struct {
     Symbols *items;
 } SymbolMap;
 
+typedef struct {
+    // counters for creating labels
+    int locals;
+    int labels;
+    int strings;
+
+    // Functions and record definitions stored here
+    SymbolMap global_symbols;
+
+    // Variables are stored here
+    SymbolMap scoped_symbols;
+
+    int (*write_fn)(const char *, ...);
+} BytecodeGenerator;
+
+void gen_init(BytecodeGenerator *gen) {
+    gen->locals = gen->labels = gen->strings = 0;
+    gen->global_symbols = gen->scoped_symbols = (SymbolMap){0};
+    gen->write_fn = printf;
+}
+
 // Functions and record definitions stored here
 SymbolMap global_symbols = {0};
 // Variables are stored here
@@ -76,8 +107,28 @@ int locals = 0;
 int labels = 0;
 int strings = 0;
 
+void gen_record(const Record *rec) {
+    Symbol recsym = {0};
+    recsym.key = rec->name;
+    recsym.kind = SymbolKindRecord;
+    recsym.type = (TypeInfo){
+        .kind = TypeKindRecord,
+        .slotsize = 4,
+        .opext = ".d",
+        .retext = ".d",
+        .pointer = true,
+        .realsize = 0, // TODO: calculate sizeof
+    };
+
+    insert(&global_symbols, recsym);
+}
+
 void gen_program(const Program *prg) {
     printf(".entry main\n\n");
+
+    for (size_t i = 0; i < prg->records.len; i++) {
+        gen_record(&prg->records.items[i]);
+    }
 
     for (size_t i = 0; i < prg->funcs.len; i++) {
         gen_function(&prg->funcs.items[i]);
@@ -292,10 +343,6 @@ void gen_op(ExprContext *ctx, BinaryOp op) {
     case BinaryOpLogOr:
         gen_logical_op(opext, 1);
         break;
-    case BinaryOpAccess:
-        // This needs to be handled differently - the operands will not be identifiers - need to
-        // look at the type info
-        todo("BinaryOpAccess");
     case BinaryOpIndex:
         // This also needs to be handled differently - the rhs slotsize must equal 2
 
@@ -337,6 +384,16 @@ void gen_logical_op(const char *opext, int ntrue) {
     printf("l%d:\n", iffalse);
 }
 
+void gen_unary_op(ExprContext *_, const UnaryOpExpr *unary) {
+    switch (unary->op) {
+    case UnaryOpSizeOf:
+        // TODO: check/set types
+        // TODO: check symbols for type
+        printf("push.d %d\n", 0);
+        break;
+    }
+}
+
 void gen_expr(ExprContext *ctx, const Expr *expr) {
     switch (expr->kind) {
     case ExprKindValue:
@@ -352,7 +409,7 @@ void gen_expr(ExprContext *ctx, const Expr *expr) {
         gen_call_expr(ctx, &expr->value.c);
         break;
     case ExprKindUnaryOp:
-        todo("ExprKindUnaryOp");
+        gen_unary_op(ctx, &expr->value.u);
         break;
     }
 }
@@ -421,12 +478,6 @@ void gen_ident_expr(ExprContext *ctx, const IdentExpr *expr) {
 
 void gen_call_expr(ExprContext *ctx, const CallExpr *expr) {
     Symbol *fnsym = get(&global_symbols, &expr->name);
-
-    if (ctx->settype) {
-        ctx->type = &fnsym->type;
-        ctx->settype = false;
-    }
-
     if (fnsym == nullptr) {
         panic("call to undefined function: %.*s\n", (int)expr->name.len, expr->name.items);
     }
@@ -434,6 +485,11 @@ void gen_call_expr(ExprContext *ctx, const CallExpr *expr) {
     if (fnsym->fnargs.len != expr->args.len) {
         panic("call %.*s: argument count mismatch, have %ld, want %ld\n", (int)expr->name.len,
               expr->name.items, expr->args.len, fnsym->fnargs.len);
+    }
+
+    if (ctx->settype) {
+        ctx->type = &fnsym->type;
+        ctx->settype = false;
     }
 
     for (size_t i = 0; i < expr->args.len; i++) {

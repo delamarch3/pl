@@ -18,6 +18,7 @@ typedef struct {
     char *opext;
     char *retext;
     bool pointer;
+    int realsize;
 } TypeInfo;
 
 typedef struct {

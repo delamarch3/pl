@@ -259,7 +259,6 @@ int next_prefix_prec(UnaryOp op) {
 int next_infix_prec(BinaryOp op) {
     switch (op) {
     case BinaryOpIndex:
-    case BinaryOpAccess:
         return 1;
     case BinaryOpLogOr:
         return 2;
@@ -334,9 +333,6 @@ Expr parse_expr(TokenIter *ts, int prec) {
         case TokenKindLBrack:
             op = BinaryOpIndex;
             break;
-        case TokenKindDot:
-            op = BinaryOpAccess;
-            break;
         default:
             return expr;
         }
@@ -388,6 +384,8 @@ Expr parse_prefix(TokenIter *ts) {
         expect(ts, TokenKindRParen);
         break;
     case TokenKindIdent:
+        // TODO: parse compound identifiers
+
         Token *n = peek(ts);
         if (n == nullptr || n->kind != TokenKindLParen) {
             expr.kind = ExprKindIdent;
